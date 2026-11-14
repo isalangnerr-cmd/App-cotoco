@@ -249,6 +249,9 @@ footer a { color: inherit; }
 .mini { font: 700 12px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; padding: 9px 10px; border: 0; cursor: pointer; background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
 .mini:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .mini.danger { color: #fff; background: var(--b); box-shadow: none; }
+.mini.ok { color: var(--bg); background: var(--a); box-shadow: none; }
+.mini:disabled { opacity: .5; cursor: wait; }
+.pulse.amber::before { border-color: var(--warn); } .pulse.amber::after { background: var(--warn); }
 details.hist { background: var(--panel); }
 details.hist summary { cursor: pointer; padding: 14px 16px; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; list-style: none; }
 details.hist summary::-webkit-details-marker { display: none; }
@@ -435,16 +438,17 @@ async function viewJogador(sid) {
   if (estado === undefined) return setView(el("div", { class: "panel" }, el("h2", {}, "Sem conexão"),
     el("p", { class: "muted" }, "Não consegui falar com o servidor. Confira sua internet e recarregue a página.")));
 
-  if (store(tokenKey) && !estado.eu) { store(tokenKey, null); aviso = "Seu nome foi liberado por quem organiza. Entre de novo."; }
 
   function chaveTela() {
     const q = estado.pergunta;
     if (!estado.eu) return "entrar";
+    if (!estado.eu.aprovado) return "pendente";
     if (!q) return "lobby";
     return [q.id, q.status, q.meu_voto ? "votou" : "nao", q.revelado, !!q.resultado?.votos].join("|");
   }
 
   function render() {
+    if (store(tokenKey) && !estado.eu) { store(tokenKey, null); aviso = "Quem organiza recusou sua entrada ou liberou seu nome. Se precisar, entre de novo."; }
     const k = chaveTela();
     $("#me").replaceChildren(...(estado.eu ? ["Jogando como ", el("b", {}, estado.eu.nome)] : []));
     document.title = `${estado.sessao.nome} · Cotoco`;
@@ -452,9 +456,11 @@ async function viewJogador(sid) {
     const qid = estado.pergunta?.id || null;
     if (ultimaPergunta !== undefined && qid && qid !== ultimaPergunta && estado.eu) toast("Nova pergunta!");
     ultimaPergunta = qid;
+    if (telaAtual === "pendente" && k !== "pendente") toast("Entrada liberada!");
     telaAtual = k;
     const q = estado.pergunta;
     if (!estado.eu) return telaEntrar();
+    if (!estado.eu.aprovado) return telaPendente();
     if (!q) return telaLobby();
     if (q.status === "aberta" && !q.meu_voto) return telaVotar(q);
     if (q.status === "aberta") return telaAguardar(q);
@@ -520,6 +526,15 @@ async function viewJogador(sid) {
       form);
   }
 
+  function telaPendente() {
+    setView(
+      el("header", { style: "display:grid;gap:12px" }, el("p", { class: "kicker" }, "Sessão"), el("h1", {}, estado.sessao.nome)),
+      el("div", { class: "panel wait" },
+        el("span", { class: "pulse amber", "aria-hidden": "true" }),
+        el("p", { class: "big" }, "Pedido enviado"),
+        el("p", { class: "muted" }, `Aguarde quem organiza liberar sua entrada, ${estado.eu.nome}. Esta tela muda sozinha.`)));
+  }
+
   function rosterLobby() {
     const box = el("div", { style: "display:grid;gap:10px;justify-items:center" },
       el("p", { class: "panel-title" }, el("b", {}, `Na sala: ${estado.participantes.length}`)),
@@ -579,8 +594,8 @@ async function viewJogador(sid) {
         await carregar(); render();
       } catch (ex) {
         if (ex.code === "votacao_encerrada") { toast("Essa votação já foi encerrada"); await carregar(); render(); return; }
-        if (ex.code === "ja_votou") { await carregar(); render(); return; }
-        if (ex.code === "nao_identificado") { store(tokenKey, null); aviso = "Seu nome foi liberado por quem organiza. Entre de novo."; await carregar(); render(); return; }
+        if (ex.code === "ja_votou" || ex.code === "aguardando_aprovacao") { await carregar(); render(); return; }
+        if (ex.code === "nao_identificado") { store(tokenKey, null); aviso = "Quem organiza recusou sua entrada ou liberou seu nome. Se precisar, entre de novo."; await carregar(); render(); return; }
         err.textContent = "Não consegui registrar seu voto. Confira sua internet e tente de novo."; err.hidden = false; atualizar();
       }
     });
@@ -645,6 +660,10 @@ async function viewAdmin(sid, chave) {
   // --- seções (cada uma se redesenha sozinha, o formulário nunca é recriado) ---
   const secRodada = el("section", { style: "display:grid;gap:16px" });
   const secPessoas = el("div", { class: "panel" });
+  const secPendentes = el("div", { class: "panel org" });
+  const aprovados = () => dados.participantes.filter(p => p.aprovado);
+  const pendentes = () => dados.participantes.filter(p => !p.aprovado);
+  let ocupado = false;
   const secHist = el("section", { style: "display:grid;gap:10px" });
 
   // formulário de nova pergunta (criado uma vez só)
@@ -682,19 +701,19 @@ async function viewAdmin(sid, chave) {
       secRodada.append(el("div", { class: "panel wait" },
         el("span", { class: "pulse", "aria-hidden": "true" }),
         el("p", { class: "big" }, "Sala aberta"),
-        el("p", { class: "muted" }, `${plural(dados.participantes.length, "pessoa entrou", "pessoas entraram")} até agora. Lance a primeira pergunta quando quiser.`)));
+        el("p", { class: "muted" }, `${plural(aprovados().length, "pessoa liberada", "pessoas liberadas")} até agora. Lance a primeira pergunta quando quiser.`)));
       return;
     }
     const votos = q.votos, a = votos.filter(v => v.escolha === "A").length, b = votos.length - a;
     const quemVotou = new Set(votos.map(v => v.participante_id));
-    const faltam = dados.participantes.filter(p => !quemVotou.has(p.id));
+    const faltam = aprovados().filter(p => !quemVotou.has(p.id));
     const head = el("header", { style: "display:grid;gap:10px" },
       el("p", { class: "round" }, `Pergunta ${q.ordem} · `, q.status === "aberta" ? el("span", { class: "live" }, "Votação aberta") : el("span", { class: "closed" }, "Encerrada")),
       el("h1", {}, q.pergunta));
     secRodada.append(head);
 
     if (q.status === "aberta") {
-      const total = dados.participantes.length;
+      const total = aprovados().length;
       const box = el("div", { class: "panel" },
         el("p", { class: "panel-title" }, el("b", {}, `${votos.length} de ${total} votaram`)),
         slots(votos.length, total),
@@ -741,24 +760,48 @@ async function viewAdmin(sid, chave) {
     salvandoVis = false; renderRodada();
   }
 
+  function renderPendentes() {
+    const lista = pendentes();
+    secPendentes.hidden = !lista.length;
+    if (!lista.length) return secPendentes.replaceChildren();
+    secPendentes.replaceChildren(
+      el("p", { class: "panel-title" }, el("b", {}, `Pedindo para entrar: ${lista.length}`)),
+      el("p", { class: "hint" }, "Libere só quem é da galera. Nome repetido, parecido ou estranho pode ser alguém tentando votar duas vezes."),
+      el("ul", { class: "people" }, lista.map(p => el("li", {},
+        el("span", { class: "p-name" }, p.nome, el("span", { class: "vote-time", style: "display:block;margin-top:4px" }, `pediu ${quando(p.created_at)}`)),
+        el("span", { class: "row" },
+          el("button", { class: "mini ok", type: "button", disabled: ocupado, onclick: () => acao("cotoco_admin_aprovar", { p_participante: p.id }, `${p.nome} liberado`) }, "Liberar"),
+          el("button", { class: "mini", type: "button", disabled: ocupado, onclick: () => acao("cotoco_admin_remover", { p_participante: p.id, p_apagar_votos: true }, `Pedido de ${p.nome} recusado`) }, "Recusar"))))),
+      lista.length > 1 ? el("button", { class: "btn small A", type: "button", disabled: ocupado, onclick: aprovarTodos }, `Liberar todos (${lista.length})`) : null);
+  }
+  async function aprovarTodos() {
+    ocupado = true; renderPendentes();
+    try { for (const p of pendentes()) await rpc("cotoco_admin_aprovar", { p_sessao: sid, p_chave: chave, p_participante: p.id }); toast("Todos liberados"); }
+    catch { toast("Não consegui liberar todos. Tente de novo."); }
+    ocupado = false; await carregar().catch(() => {}); render();
+  }
+
   function renderPessoas() {
+    const lista = aprovados();
     secPessoas.replaceChildren(
-      el("p", { class: "panel-title" }, el("b", {}, `Na sala: ${dados.participantes.length}`)),
-      dados.participantes.length
-        ? el("ul", { class: "people" }, dados.participantes.map(p => el("li", {},
+      el("p", { class: "panel-title" }, el("b", {}, `Na sala: ${lista.length}`)),
+      lista.length
+        ? el("ul", { class: "people" }, lista.map(p => el("li", { style: removendo === p.id ? "flex-wrap:wrap" : null },
             el("span", { class: "p-name" }, p.nome),
             removendo === p.id
               ? el("span", { class: "row" },
-                  el("button", { class: "mini danger", type: "button", onclick: () => remover(p) }, "Liberar nome"),
+                  el("button", { class: "mini", type: "button", disabled: ocupado, onclick: () => acao("cotoco_admin_remover", { p_participante: p.id, p_apagar_votos: false }, `Nome de ${p.nome} liberado`) }, "Liberar nome"),
+                  el("button", { class: "mini danger", type: "button", disabled: ocupado, onclick: () => acao("cotoco_admin_remover", { p_participante: p.id, p_apagar_votos: true }, `${p.nome} expulso, votos apagados`) }, "Expulsar e apagar votos"),
                   el("button", { class: "mini", type: "button", onclick: () => { removendo = null; renderPessoas(); } }, "Cancelar"))
               : el("button", { class: "mini", type: "button", onclick: () => { removendo = p.id; renderPessoas(); } }, "Remover"))))
-        : el("p", { class: "muted" }, "Ninguém entrou ainda. Mande o link da galera no grupo."),
-      el("p", { class: "hint" }, "Remover libera o nome. Use se alguém trocou de celular e precisa entrar de novo. Os votos já dados continuam."));
+        : el("p", { class: "muted" }, "Ninguém liberado ainda. Mande o link da galera no grupo e libere quem pedir para entrar."),
+      el("p", { class: "hint" }, "Liberar nome: a pessoa trocou de celular e precisa entrar de novo; os votos dela continuam. Expulsar: some da sala e todos os votos dela são apagados."));
   }
-  async function remover(p) {
-    try { await rpc("cotoco_admin_remover", { p_sessao: sid, p_chave: chave, p_participante: p.id }); toast(`${p.nome} saiu da sala`); }
-    catch { toast("Não consegui remover. Tente de novo."); }
-    removendo = null; await carregar().catch(() => {}); render();
+  async function acao(fn, args, msg) {
+    ocupado = true; renderPendentes(); renderPessoas();
+    try { await rpc(fn, { p_sessao: sid, p_chave: chave, ...args }); toast(msg); }
+    catch { toast("Não deu certo. Tente de novo."); }
+    ocupado = false; removendo = null; await carregar().catch(() => {}); render();
   }
 
   function renderHist() {
@@ -784,18 +827,18 @@ async function viewAdmin(sid, chave) {
     const q = atual();
     fTitulo.textContent = q ? "Próxima pergunta" : "Primeira pergunta";
     form.hidden = aberta();
-    renderRodada(); renderPessoas(); renderHist();
+    renderPendentes(); renderRodada(); renderPessoas(); renderHist();
     if (!montado) {
       setView(
         el("p", { class: "kicker" }, `${dados.sessao.nome} · painel de admin`),
-        secRodada, form, painelLinks(sid, chave, novo), secPessoas, secHist,
+        secPendentes, secRodada, form, painelLinks(sid, chave, novo), secPessoas, secHist,
         el("footer", {}, el("a", { href: "./" }, "Criar outra sessão")));
       montado = true;
     }
   }
   render();
   iniciarPolling(async () => {
-    if (confirmarEncerrar || removendo || salvandoVis) return;
+    if (confirmarEncerrar || removendo || salvandoVis || ocupado) return;
     try { await carregar(); render(); } catch {}
   });
 }
