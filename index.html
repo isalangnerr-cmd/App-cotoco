@@ -45,7 +45,7 @@ body {
   padding-block: max(18px, env(safe-area-inset-top, 0px)) max(48px, env(safe-area-inset-bottom, 0px));
 }
 main { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
-.panel > *, section > * { min-width: 0; }
+.panel > *, section > *, .field > * { min-width: 0; }
 
 /* marca */
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -223,6 +223,40 @@ footer a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before { transition: none !important; animation: none !important; }
 }
+
+/* ===== sessão ===== */
+.me { font: 700 13px/1 var(--cond); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); text-align: right; }
+.me b { color: var(--ink); }
+.round { font: 700 13px/1 var(--cond); letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+.wait { text-align: center; display: grid; gap: 14px; justify-items: center; padding-block: 10px; }
+.wait .big { font: 400 clamp(32px, 8vw, 50px)/1 var(--display); text-transform: uppercase; text-wrap: balance; }
+.pulse { width: 54px; height: 54px; position: relative; }
+.pulse::before, .pulse::after { content: ""; position: absolute; inset: 0; border: 3px solid var(--a); transform: rotate(45deg); }
+.pulse::after { inset: 14px; background: var(--a); border: 0; animation: blink 1.4s steps(2, start) infinite; }
+.pulse.red::before { border-color: var(--b); } .pulse.red::after { background: var(--b); }
+.recap { display: grid; gap: 6px; text-align: left; width: 100%; padding: 14px 16px; background: var(--panel-2); box-shadow: inset 4px 0 0 var(--c, var(--line)); }
+.recap.A { --c: var(--a); } .recap.B { --c: var(--b); }
+.recap .vote-pick { color: var(--c); }
+.chip.A { box-shadow: inset 3px 0 0 var(--a); } .chip.B { box-shadow: inset 3px 0 0 var(--b); }
+.chip.off { color: var(--muted); box-shadow: inset 3px 0 0 var(--line); }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); box-shadow: inset 0 0 0 1px var(--line); }
+.seg button { font: 700 14px/1.15 var(--cond); letter-spacing: .1em; text-transform: uppercase; padding: 13px 8px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:disabled { cursor: wait; }
+.people { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.people li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; background: var(--panel-2); min-width: 0; }
+.people .p-name { font: 700 16px/1.2 var(--cond); letter-spacing: .08em; text-transform: uppercase; overflow-wrap: anywhere; }
+.mini { font: 700 12px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; padding: 9px 10px; border: 0; cursor: pointer; background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.mini:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.mini.danger { color: #fff; background: var(--b); box-shadow: none; }
+details.hist { background: var(--panel); }
+details.hist summary { cursor: pointer; padding: 14px 16px; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; list-style: none; }
+details.hist summary::-webkit-details-marker { display: none; }
+details.hist summary .q { font: 700 17px/1.2 var(--cond); letter-spacing: .04em; text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; }
+details.hist summary .w { font: 700 13px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+details.hist[open] summary { box-shadow: inset 0 -1px 0 var(--line); }
+details.hist .hist-body { padding: 14px 16px 16px; display: grid; gap: 12px; }
+.alert-ok { color: var(--a); font: 700 14px/1.2 var(--cond); letter-spacing: .14em; text-transform: uppercase; text-align: center; }
 </style>
 </head>
 <body>
@@ -232,36 +266,31 @@ footer a { color: inherit; }
       <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
       <span class="brand-name">Cotoco</span>
     </a>
-    <span class="sys" aria-hidden="true">A ou B</span>
+    <span class="me" id="me"></span>
   </div>
   <p class="loading" id="boot">Carregando…</p>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
-// ---- Banco (chave pública: só permite o que as regras do banco deixam) ----
+// ===== Banco: o site só conversa com funções do banco; as tabelas ficam fechadas =====
 const SUPABASE_URL = "https://oojnqitywbasfxuispiw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vam5xaXR5d2Jhc2Z4dWlzcGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NzYyNjgsImV4cCI6MjEwOTU1MjI2OH0.6qzzedJ5enwaJsoq4nag5inb-kC4Qq_QNQgVqeACtNc";
-const MIN_JUST = 5, MAX_JUST = 600, POLL_MS = 5000;
+const MIN_JUST = 5, MAX_JUST = 600, POLL_MS = 3000;
 
-async function api(path, { method = "GET", body, minimal = false } = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    method,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: minimal ? "return=minimal" : "return=representation",
-    },
-    body: body ? JSON.stringify(body) : undefined,
+async function rpc(fn, args) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args || {}),
   });
   const text = await res.text();
   let data = null; try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-  if (!res.ok) { const err = new Error(data?.message || "Erro"); err.code = data?.code; err.status = res.status; throw err; }
+  if (!res.ok) { const e = new Error(data?.message || "erro"); e.code = data?.message; throw e; }
   return data;
 }
 
-// ---- utilidades ----
+// ===== utilidades =====
 const $ = (s, r = document) => r.querySelector(s);
 const app = $("#app");
 function el(tag, attrs = {}, ...kids) {
@@ -278,6 +307,7 @@ function el(tag, attrs = {}, ...kids) {
 function store(key, val) {
   try {
     if (val === undefined) return JSON.parse(localStorage.getItem(key));
+    if (val === null) return localStorage.removeItem(key);
     localStorage.setItem(key, JSON.stringify(val));
   } catch { return null; }
 }
@@ -291,8 +321,8 @@ async function copy(text, msg = "Link copiado") {
   catch { toast("Não deu para copiar. Selecione o link e copie."); }
 }
 const base = () => `${location.origin}${location.pathname}`;
-const linkGalera = id => `${base()}?v=${id}`;
-const linkOrg = (id, k) => `${base()}?v=${id}&k=${k}`;
+const linkGalera = id => `${base()}?s=${id}`;
+const linkAdmin = (id, k) => `${base()}?s=${id}&admin=${k}`;
 function quando(iso) {
   const s = (Date.now() - new Date(iso)) / 1000;
   if (s < 60) return "agora";
@@ -300,337 +330,487 @@ function quando(iso) {
   if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
-function clearView() { [...app.children].slice(1).forEach(n => n.remove()); }
+function setView(...nodes) { [...app.children].slice(1).forEach(n => n.remove()); app.append(...nodes.flat().filter(Boolean)); }
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const opcao = (q, l) => (l === "A" ? q.opcao_a : q.opcao_b);
 function sideTag(l) { return el("span", { class: `side-tag ${l}`, "aria-hidden": "true" }, l); }
 
-// ---- Tela: criar votação ----
+// ----- peças visuais compartilhadas -----
+function placar(q, a, b, final = true) {
+  const total = a + b, pa = total ? Math.round(a / total * 100) : 50, pb = total ? 100 - pa : 50;
+  const banner = total === 0 ? el("div", { class: "banner" }, el("small", {}, "Resultado"), "Sem votos")
+    : a === b ? el("div", { class: "banner" }, el("small", {}, "Resultado"), "Empate")
+    : el("div", { class: `banner ${a > b ? "A" : "B"}` }, el("small", {}, "Quem venceu"), opcao(q, a > b ? "A" : "B"));
+  return [
+    final ? banner : null,
+    el("div", { class: "score" },
+      el("div", { class: "score-side A" }, el("span", { class: "score-num" }, a), el("span", { class: "score-label" }, `A · ${q.opcao_a}`)),
+      el("span", { class: "score-vs", "aria-hidden": "true" }, "×"),
+      el("div", { class: "score-side B" }, el("span", { class: "score-num" }, b), el("span", { class: "score-label" }, `B · ${q.opcao_b}`))),
+    el("div", { class: "bar", role: "img", "aria-label": `A ${pa}%, B ${pb}%` },
+      el("span", { class: "A", style: `width:${pa}%` }), el("span", { class: "B", style: `width:${pb}%` })),
+  ];
+}
+function listaVotos(q, votos) {
+  if (!votos.length) return el("p", { class: "empty" }, "Ninguém votou nesta pergunta.");
+  return el("ul", { class: "votes" }, votos.map(v => el("li", { class: `vote ${v.escolha}` },
+    el("div", { class: "vote-head" },
+      el("span", { class: "vote-name" }, v.nome),
+      el("span", { class: "vote-pick" }, `${v.escolha} · ${opcao(q, v.escolha)}`)),
+    el("p", { class: "vote-text" }, v.justificativa),
+    el("span", { class: "vote-time" }, quando(v.created_at)))));
+}
+function slots(n, total) {
+  return el("div", { class: "slots", role: "img", "aria-label": `${n} de ${total} votaram` },
+    Array.from({ length: Math.max(total, n) }, (_, i) => el("span", { class: "slot" + (i < n ? " on" : "") })));
+}
+function painelLinks(id, chave, novo) {
+  const g = linkGalera(id), a = linkAdmin(id, chave);
+  return el("div", { class: "panel org", style: "gap:14px" },
+    el("p", { class: "panel-title" }, el("b", {}, novo ? "Sessão criada! Seus dois links fixos" : "Links da sessão")),
+    el("div", { class: "field" },
+      el("p", { class: "label" }, "Link da galera"),
+      el("p", { class: "hint" }, "Mande uma vez no grupo. Vale para todas as perguntas da sessão."),
+      el("div", { class: "share" }, el("code", {}, g),
+        el("button", { class: "btn small", type: "button", onclick: () => copy(g) }, "Copiar"),
+        el("a", { class: "btn small ghost", href: `https://wa.me/?text=${encodeURIComponent(`Entra aí pra votar: ${g}`)}`, target: "_blank", rel: "noopener" }, "WhatsApp"))),
+    el("div", { class: "field" },
+      el("p", { class: "label" }, "Seu link de admin"),
+      el("p", { class: "hint" }, "Guarde e não mande no grupo: quem tem este link controla a sessão."),
+      el("div", { class: "share" }, el("code", {}, a),
+        el("button", { class: "btn small ghost", type: "button", onclick: () => copy(a, "Link de admin copiado") }, "Copiar"))),
+    el("a", { class: "linkbtn", href: g, target: "_blank", rel: "noopener" }, "Quer votar também? Abra o link da galera"));
+}
+
+// ===== Tela inicial: criar sessão =====
 function viewCriar() {
-  clearView();
   document.title = "Cotoco · A ou B";
+  $("#me").textContent = "";
   const err = el("p", { class: "error", role: "alert", hidden: true });
-  const secreto = el("input", { type: "checkbox", id: "secreto", checked: true });
-  const esperados = el("input", { type: "number", id: "esperados", min: 2, max: 200, inputmode: "numeric", placeholder: "Ex.: 8" });
-  const regra = el("p", { class: "hint" });
-  function atualizarRegra() {
-    const n = parseInt(esperados.value, 10), temN = n >= 2;
-    if (secreto.checked) regra.textContent = temN
-      ? `O placar só aparece quando as ${n} pessoas votarem, ou quando você encerrar antes.`
-      : "Sem número de pessoas, o placar só aparece quando você encerrar a votação.";
-    else regra.textContent = temN
-      ? `O placar aparece ao vivo. A votação fecha sozinha quando ${n} pessoas votarem.`
-      : "O placar aparece ao vivo. A votação fica aberta até você encerrar.";
-  }
-  secreto.addEventListener("change", atualizarRegra);
-  esperados.addEventListener("input", atualizarRegra);
-  atualizarRegra();
-
+  const nome = el("input", { type: "text", id: "nomeSessao", maxlength: 80, placeholder: "Ex.: Resenha de sábado" });
+  const btn = el("button", { class: "btn block", type: "submit" }, "Criar sessão");
   const form = el("form", { class: "panel", novalidate: true },
-    el("p", { class: "panel-title" }, "Nova votação"),
-    el("div", { class: "field" },
-      el("label", { for: "pergunta" }, "Pergunta"),
-      el("input", { type: "text", id: "pergunta", maxlength: 200, placeholder: "Ex.: Onde vai ser o churrasco de sábado?" })),
-    el("div", { class: "ab-inputs" },
-      el("div", { class: "field" },
-        el("label", { for: "opA" }, sideTag("A"), "Lado A"),
-        el("input", { type: "text", id: "opA", maxlength: 80, placeholder: "Ex.: Casa do Léo" })),
-      el("div", { class: "field" },
-        el("label", { for: "opB" }, sideTag("B"), "Lado B"),
-        el("input", { type: "text", id: "opB", maxlength: 80, placeholder: "Ex.: No sítio" }))),
-    el("div", { class: "field" },
-      el("label", { for: "esperados" }, "Quantas pessoas vão votar?"),
-      el("div", { class: "num-row" }, esperados, el("span", { class: "hint" }, "Opcional. Contando com você, se for votar."))),
-    el("label", { class: "check", for: "secreto" }, secreto,
-      el("span", { class: "check-text" },
-        el("strong", {}, "Placar secreto até o fim"),
-        el("span", { class: "hint" }, "Ninguém vê quem está ganhando antes da hora."))),
-    regra,
-    err,
-    el("button", { class: "btn block", type: "submit" }, "Criar votação"));
-
-  form.addEventListener("submit", async (e) => {
+    el("p", { class: "panel-title" }, "Nova sessão"),
+    el("div", { class: "field" }, el("label", { for: "nomeSessao" }, "Nome da sessão"), nome,
+      el("p", { class: "hint" }, "Você ganha um link fixo para a galera e um para você. Depois é só ir lançando as perguntas.")),
+    err, btn);
+  form.addEventListener("submit", async e => {
     e.preventDefault();
-    const p_pergunta = $("#pergunta").value.trim(), p_opcao_a = $("#opA").value.trim(), p_opcao_b = $("#opB").value.trim();
-    const n = esperados.value.trim() ? parseInt(esperados.value, 10) : null;
-    if (p_pergunta.length < 3) return showErr("Escreva a pergunta da votação.");
-    if (!p_opcao_a || !p_opcao_b) return showErr("Preencha os dois lados, A e B.");
-    if (n !== null && !(n >= 2 && n <= 200)) return showErr("O número de pessoas precisa ser entre 2 e 200, ou fique em branco.");
-    const btn = form.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Criando…";
+    if (!nome.value.trim()) { err.textContent = "Dê um nome para a sessão."; err.hidden = false; return; }
+    btn.disabled = true; btn.textContent = "Criando…";
     try {
-      const r = await api("rpc/cotoco_criar", { method: "POST", body: { p_pergunta, p_opcao_a, p_opcao_b, p_placar_secreto: secreto.checked, p_esperados: n } });
-      store(`cotoco:chave:${r.id}`, r.chave);
+      const r = await rpc("cotoco_criar_sessao", { p_nome: nome.value.trim() });
       store(`cotoco:nova:${r.id}`, true);
-      history.pushState(null, "", `?v=${r.id}`);
+      history.pushState(null, "", `?s=${r.id}&admin=${r.chave}`);
       route();
     } catch {
-      showErr("Não consegui criar a votação. Confira sua internet e tente de novo.");
-      btn.disabled = false; btn.textContent = "Criar votação";
+      err.textContent = "Não consegui criar a sessão. Confira sua internet e tente de novo."; err.hidden = false;
+      btn.disabled = false; btn.textContent = "Criar sessão";
     }
   });
-  function showErr(m) { err.textContent = m; err.hidden = false; }
-
-  app.append(
+  setView(
     el("header", { style: "display:grid;gap:14px" },
       el("p", { class: "kicker" }, "Escolha seu lado"),
       el("h1", {}, "Dois lados. Um voto. Justifique."),
-      el("p", { class: "lead" }, "Crie a votação, mande o link no grupo e cada um escolhe A ou B. Ninguém trava o voto sem dizer o porquê.")),
+      el("p", { class: "lead" }, "Crie uma sessão, mande um link só no grupo e vá lançando as perguntas. A galera escolhe A ou B e explica o porquê.")),
     form,
     el("footer", {}, "Quem tem o link vota. Sem cadastro."));
 }
 
-// ---- Tela: votação ----
-let pollTimer = null;
-async function viewVotacao(id) {
-  clearView();
-  const loading = el("p", { class: "loading" }, "Carregando a votação…");
-  app.append(loading);
+// ===== Tela do jogador =====
+let timer = null;
+function iniciarPolling(fn) { clearInterval(timer); timer = setInterval(() => { if (!document.hidden) fn(); }, POLL_MS); }
 
-  let votacao = null, participantes = [], votos = [];
+async function viewJogador(sid) {
+  const tokenKey = `cotoco:token:${sid}`;
+  let estado = null, telaAtual = "", aviso = "", ultimaPergunta;
+  const dinamicos = {};
+
   async function carregar() {
-    const [rows, parts] = await Promise.all([
-      api(`cotoco_votacoes?id=eq.${encodeURIComponent(id)}&select=*`),
-      api("rpc/cotoco_participantes", { method: "POST", body: { p_id: id } }),
-    ]);
-    votacao = rows[0] || null; participantes = parts || [];
-    if (votacao && placarLiberado()) {
-      votos = await api(`cotoco_votos?votacao_id=eq.${id}&select=nome,escolha,justificativa,created_at&order=created_at.desc`);
-    }
+    estado = await rpc("cotoco_estado", { p_sessao: sid, p_token: store(tokenKey) || "" });
   }
-  const placarLiberado = () => votacao.encerrada || !votacao.placar_secreto;
+  try { await carregar(); } catch { estado = undefined; }
+  if (estado === null) return setView(el("div", { class: "panel" }, el("h2", {}, "Sessão não encontrada"),
+    el("p", { class: "muted" }, "O link pode estar incompleto. Peça para quem organiza mandar de novo.")));
+  if (estado === undefined) return setView(el("div", { class: "panel" }, el("h2", {}, "Sem conexão"),
+    el("p", { class: "muted" }, "Não consegui falar com o servidor. Confira sua internet e recarregue a página.")));
 
-  try { await carregar(); } catch { votacao = null; }
-  loading.remove();
-  if (!votacao) {
-    app.append(el("div", { class: "panel" },
-      el("h2", {}, "Votação não encontrada"),
-      el("p", { class: "muted" }, "O link pode estar incompleto. Peça para quem criou mandar de novo."),
-      el("a", { class: "btn ghost", href: "./" }, "Criar uma votação nova")));
-    return;
+  if (store(tokenKey) && !estado.eu) { store(tokenKey, null); aviso = "Seu nome foi liberado por quem organiza. Entre de novo."; }
+
+  function chaveTela() {
+    const q = estado.pergunta;
+    if (!estado.eu) return "entrar";
+    if (!q) return "lobby";
+    return [q.id, q.status, q.meu_voto ? "votou" : "nao", q.revelado, !!q.resultado?.votos].join("|");
   }
 
-  const chave = () => store(`cotoco:chave:${id}`);
-  const meuVoto = () => store(`cotoco:voto:${id}`);
-  let escolha = null, querVer = false, filtro = "todos", confirmando = false, ultimoEstado = "";
-
-  // ----- cabeçalho -----
-  const statusLine = el("div", { class: "status" });
-  const header = el("header", { style: "display:grid;gap:14px" },
-    el("p", { class: "kicker" }, "Votação"),
-    el("h1", {}, votacao.pergunta),
-    statusLine);
-  function renderStatus() {
-    const n = participantes.length, total = votacao.esperados;
-    statusLine.replaceChildren(
-      votacao.encerrada ? el("span", { class: "closed" }, "Encerrada") : el("span", { class: "live" }, "Em andamento"),
-      el("span", {}, total ? `${n}/${total} votaram` : `${n} ${n === 1 ? "voto" : "votos"}`),
-      el("span", {}, votacao.placar_secreto ? "Placar secreto" : "Placar ao vivo"));
-  }
-
-  // ----- formulário de voto -----
-  const mkSide = (l, txt) => el("button", { type: "button", class: `side ${l}`, "aria-pressed": "false", onclick: () => escolher(l) },
-    el("span", { class: "ghost-letter", "aria-hidden": "true" }, l),
-    el("span", { class: "pick" }, `✓ Lado ${l}`),
-    el("span", { class: "side-label" }, `Lado ${l}`),
-    el("span", { class: "opt" }, txt));
-  const sideA = mkSide("A", votacao.opcao_a), sideB = mkSide("B", votacao.opcao_b);
-  const nome = el("input", { type: "text", id: "nome", maxlength: 40, placeholder: "Como a galera te chama", value: store("cotoco:nome") || "", autocomplete: "nickname" });
-  const just = el("textarea", { id: "justificativa", maxlength: MAX_JUST, placeholder: "Escolha um lado e diga por que votou nele." });
-  const justLabel = el("label", { for: "justificativa" }, "Justificativa");
-  const counter = el("p", { class: "counter" });
-  const err = el("p", { class: "error", role: "alert", hidden: true });
-  const enviar = el("button", { class: "btn block", type: "submit", disabled: true }, "Escolha um lado");
-
-  function escolher(l) {
-    escolha = l;
-    sideA.setAttribute("aria-pressed", l === "A"); sideB.setAttribute("aria-pressed", l === "B");
-    justLabel.textContent = `Por que o lado ${l}?`;
-    just.placeholder = `Defenda o lado ${l}: por que "${l === "A" ? votacao.opcao_a : votacao.opcao_b}" é a melhor escolha?`;
-    atualizar();
-  }
-  function atualizar() {
-    const n = just.value.trim().length, temNome = !!nome.value.trim();
-    counter.textContent = n < MIN_JUST ? `Mínimo ${MIN_JUST} caracteres · ${n}/${MIN_JUST}` : `${n}/${MAX_JUST}`;
-    counter.className = "counter" + (n >= MIN_JUST ? " ok" : "");
-    enviar.disabled = !(escolha && temNome && n >= MIN_JUST);
-    enviar.className = "btn block" + (escolha ? " " + escolha : "");
-    enviar.textContent = !escolha ? "Escolha um lado" : !temNome ? "Coloque seu nome" : n < MIN_JUST ? "Justifique o voto" : `Travar voto no lado ${escolha}`;
-  }
-  nome.addEventListener("input", atualizar); just.addEventListener("input", atualizar);
-
-  const form = el("form", { class: "panel", novalidate: true },
-    el("p", { class: "panel-title" }, "Escolha seu lado"),
-    el("div", { class: "duel" }, sideA, sideB),
-    el("div", { class: "field" }, el("label", { for: "nome" }, "Seu nome"), nome),
-    el("div", { class: "field" }, justLabel, just, counter),
-    err, enviar,
-    el("button", { type: "button", class: "linkbtn", onclick: () => { querVer = true; render(); } }, "Ver como está sem votar"));
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const payload = { votacao_id: id, nome: nome.value.trim(), escolha, justificativa: just.value.trim() };
-    if (!escolha || !payload.nome || payload.justificativa.length < MIN_JUST) return;
-    enviar.disabled = true; enviar.textContent = "Travando…"; err.hidden = true;
-    try {
-      await api("cotoco_votos", { method: "POST", body: payload, minimal: true });
-      store("cotoco:nome", payload.nome);
-      store(`cotoco:voto:${id}`, { nome: payload.nome, escolha });
-      toast("Voto travado!");
-      await atualizarDados(true);
-    } catch (ex) {
-      if (ex.code === "23505") err.textContent = `Já tem um voto com o nome "${payload.nome}" aqui. Se não foi você, use outro nome (com sobrenome, por exemplo).`;
-      else if (ex.code === "42501") { err.textContent = "Essa votação já foi encerrada. Não dá mais para votar."; atualizarDados(true); }
-      else err.textContent = "Não consegui registrar seu voto. Confira sua internet e tente de novo.";
-      err.hidden = false; atualizar();
-    }
-  });
-
-  // ----- resultado -----
-  const resultado = el("section", { style: "display:grid;gap:18px" });
-  function renderResultado() {
-    resultado.replaceChildren();
-    const mine = meuVoto();
-    if (!placarLiberado()) {
-      const n = participantes.length, total = votacao.esperados;
-      resultado.append(el("div", { class: "panel locked" },
-        el("span", { class: "lock-icon", "aria-hidden": "true" }),
-        el("p", { class: "big" }, "Placar oculto"),
-        el("p", { class: "muted" }, total
-          ? `O resultado aparece quando as ${total} pessoas votarem, ou quando quem organizou encerrar.`
-          : "O resultado aparece quando quem organizou encerrar a votação."),
-        total ? el("div", { class: "slots", role: "img", "aria-label": `${n} de ${total} votaram` },
-          Array.from({ length: total }, (_, i) => el("span", { class: "slot" + (i < n ? " on" : "") }))) : null,
-        el("p", { class: "panel-title" }, n ? el("b", {}, `${n} ${n === 1 ? "pessoa já travou" : "pessoas já travaram"} o voto`) : "Ninguém votou ainda"),
-        n ? el("div", { class: "roster" }, participantes.map(p => el("span", { class: "chip" }, p.nome))) : null,
-        mine ? el("p", { class: "muted" }, `Você votou como ${mine.nome}, no lado ${mine.escolha}.`) : null));
-      return;
-    }
-
-    const a = votos.filter(v => v.escolha === "A").length, b = votos.length - a, total = votos.length;
-    const pa = total ? Math.round(a / total * 100) : 50, pb = total ? 100 - pa : 50;
-    let banner = null;
-    if (votacao.encerrada) {
-      banner = total === 0 ? el("div", { class: "banner" }, el("small", {}, "Resultado final"), "Sem votos")
-        : a === b ? el("div", { class: "banner" }, el("small", {}, "Resultado final"), "Empate")
-        : el("div", { class: `banner ${a > b ? "A" : "B"}` }, el("small", {}, "Resultado final"), `Vitória do lado ${a > b ? "A" : "B"}`);
-    }
-    resultado.append(el("div", { class: "panel" },
-      el("p", { class: "panel-title" }, votacao.encerrada ? "Placar final" : "Placar parcial"),
-      banner,
-      el("div", { class: "score" },
-        el("div", { class: "score-side A" }, el("span", { class: "score-num" }, a), el("span", { class: "score-label" }, `A · ${votacao.opcao_a}`)),
-        el("span", { class: "score-vs", "aria-hidden": "true" }, "×"),
-        el("div", { class: "score-side B" }, el("span", { class: "score-num" }, b), el("span", { class: "score-label" }, `B · ${votacao.opcao_b}`))),
-      el("div", { class: "bar", role: "img", "aria-label": `Lado A ${pa}%, lado B ${pb}%` },
-        el("span", { class: "A", style: `width:${pa}%` }), el("span", { class: "B", style: `width:${pb}%` })),
-      el("p", { class: "status", style: "justify-content:space-between" },
-        el("span", {}, `${total} ${total === 1 ? "voto" : "votos"}`), el("span", {}, total ? `${pa}% A · ${pb}% B` : "")),
-      mine ? el("p", { class: "muted" }, `Você votou como ${mine.nome}, no lado ${mine.escolha}.`) : null));
-
-    const tabs = el("div", { class: "tabs", role: "tablist" },
-      [["todos", `Todos ${total}`], ["A", `A ${a}`], ["B", `B ${b}`]].map(([k, t]) =>
-        el("button", { type: "button", class: "tab", role: "tab", "aria-selected": String(filtro === k), onclick: () => { filtro = k; renderResultado(); } }, t)));
-    const lista = votos.filter(v => filtro === "todos" || v.escolha === filtro);
-    resultado.append(
-      el("div", { class: "feed-head" }, el("h2", {}, "Justificativas"), tabs),
-      lista.length
-        ? el("ul", { class: "votes" }, lista.map(v => el("li", { class: `vote ${v.escolha}` },
-            el("div", { class: "vote-head" },
-              el("span", { class: "vote-name" }, v.nome),
-              el("span", { class: "vote-pick" }, `Lado ${v.escolha} · ${v.escolha === "A" ? votacao.opcao_a : votacao.opcao_b}`)),
-            el("p", { class: "vote-text" }, v.justificativa),
-            el("span", { class: "vote-time" }, quando(v.created_at)))))
-        : el("p", { class: "empty" }, total ? "Ninguém escolheu esse lado." : "Os votos e as justificativas aparecem aqui."));
-  }
-
-  // ----- compartilhar -----
-  const urlGalera = linkGalera(id);
-  const share = el("div", { class: "panel", style: "gap:12px" },
-    el("p", { class: "panel-title" }, store(`cotoco:nova:${id}`) ? el("b", {}, "Pronto! Mande este link para a galera") : "Link desta votação"),
-    el("div", { class: "share" },
-      el("code", {}, urlGalera),
-      el("button", { class: "btn small", type: "button", onclick: () => copy(urlGalera) }, "Copiar"),
-      el("a", { class: "btn small ghost", href: `https://wa.me/?text=${encodeURIComponent(`Escolhe teu lado: ${votacao.pergunta}\n${urlGalera}`)}`, target: "_blank", rel: "noopener" }, "WhatsApp")));
-
-  // ----- painel do organizador -----
-  const org = el("div", { class: "panel org" });
-  function renderOrg() {
-    const k = chave();
-    org.hidden = !k;
-    if (!k) return;
-    org.replaceChildren(el("p", { class: "panel-title" }, el("b", {}, "Painel de quem organiza")));
-    const urlOrg = linkOrg(id, k);
-    org.append(
-      el("p", { class: "hint" }, "Este é o seu link de organizador. Guarde e não mande no grupo: quem tem ele pode encerrar a votação."),
-      el("div", { class: "share" }, el("code", {}, urlOrg), el("button", { class: "btn small ghost", type: "button", onclick: () => copy(urlOrg, "Link de organizador copiado") }, "Copiar")));
-    if (votacao.encerrada) {
-      org.append(el("p", { class: "status" }, el("span", { class: "closed" }, "Votação encerrada")));
-    } else if (!confirmando) {
-      org.append(el("button", { class: "btn block", type: "button", onclick: () => { confirmando = true; renderOrg(); } }, "Encerrar votação"));
-    } else {
-      const erro = el("p", { class: "error", hidden: true });
-      const sim = el("button", { class: "btn", type: "button" }, "Encerrar agora");
-      sim.addEventListener("click", async () => {
-        sim.disabled = true; sim.textContent = "Encerrando…";
-        try {
-          const ok = await api("rpc/cotoco_encerrar", { method: "POST", body: { p_id: id, p_chave: k } });
-          if (!ok) throw new Error("chave");
-          confirmando = false; toast("Votação encerrada");
-          await atualizarDados(true);
-        } catch (ex) {
-          erro.textContent = ex.message === "chave" ? "Este aparelho não tem a chave certa desta votação." : "Não consegui encerrar. Confira sua internet e tente de novo.";
-          erro.hidden = false; sim.disabled = false; sim.textContent = "Encerrar agora";
-        }
-      });
-      org.append(el("div", { class: "confirm" },
-        el("p", {}, `Encerrar agora? Ninguém mais vai poder votar e o placar aparece para todo mundo. ${participantes.length} ${participantes.length === 1 ? "pessoa votou" : "pessoas votaram"} até agora.`),
-        erro,
-        el("div", { class: "row" }, sim, el("button", { class: "btn ghost", type: "button", onclick: () => { confirmando = false; renderOrg(); } }, "Cancelar"))));
-    }
-  }
-
-  // ----- montagem -----
-  const mostrarForm = () => !votacao.encerrada && !meuVoto() && !querVer;
   function render() {
-    clearView();
-    document.title = `${votacao.pergunta} · Cotoco`;
-    renderStatus(); renderOrg();
-    if (mostrarForm()) { app.append(header, form, share, org); atualizar(); }
-    else {
-      renderResultado();
-      app.append(header, resultado);
-      if (!votacao.encerrada && !meuVoto()) app.append(el("button", { class: "btn ghost block", type: "button", onclick: () => { querVer = false; render(); } }, "Quero votar"));
-      app.append(share, org);
-    }
-    app.append(el("footer", {}, el("a", { href: "./" }, "Criar outra votação")));
-    ultimoEstado = estado();
+    const k = chaveTela();
+    $("#me").replaceChildren(...(estado.eu ? ["Jogando como ", el("b", {}, estado.eu.nome)] : []));
+    document.title = `${estado.sessao.nome} · Cotoco`;
+    if (k === telaAtual) { atualizarDinamicos(); return; }
+    const qid = estado.pergunta?.id || null;
+    if (ultimaPergunta !== undefined && qid && qid !== ultimaPergunta && estado.eu) toast("Nova pergunta!");
+    ultimaPergunta = qid;
+    telaAtual = k;
+    const q = estado.pergunta;
+    if (!estado.eu) return telaEntrar();
+    if (!q) return telaLobby();
+    if (q.status === "aberta" && !q.meu_voto) return telaVotar(q);
+    if (q.status === "aberta") return telaAguardar(q);
+    return telaEncerrada(q);
   }
-  const estado = () => `${votacao.encerrada}|${mostrarForm()}`;
 
-  async function atualizarDados(forcarRender = false) {
-    try { await carregar(); } catch { return; }
-    if (!votacao) return;
-    if (forcarRender || estado() !== ultimoEstado) { render(); return; }
-    renderStatus();
-    if (!mostrarForm()) renderResultado();
-    if (!confirmando) renderOrg();
+  function cabecalho(q) {
+    return el("header", { style: "display:grid;gap:12px" },
+      el("p", { class: "kicker" }, estado.sessao.nome),
+      q ? el("p", { class: "round" }, `Pergunta ${q.ordem}`) : null,
+      q ? el("h1", {}, q.pergunta) : null);
+  }
+  function progresso() {
+    const q = estado.pergunta, n = q.votaram.length, total = estado.total;
+    const box = el("div", { style: "display:grid;gap:12px;justify-items:center;width:100%" },
+      slots(n, total),
+      el("p", { class: "panel-title" }, el("b", {}, `${n} de ${total} já ${n === 1 ? "votou" : "votaram"}`)),
+      el("div", { class: "roster" },
+        estado.participantes.map(p => el("span", { class: "chip" + (q.votaram.includes(p) ? "" : " off") }, p))));
+    dinamicos.progresso = box;
+    return box;
+  }
+  function atualizarDinamicos() {
+    if (dinamicos.progresso?.isConnected) dinamicos.progresso.replaceWith(progresso());
+    if (dinamicos.lobby?.isConnected) dinamicos.lobby.replaceWith(rosterLobby());
+  }
+  function meuVotoRecap(q) {
+    if (!q.meu_voto) return el("p", { class: "muted" }, "Você não votou nesta pergunta.");
+    return el("div", { class: `recap ${q.meu_voto.escolha}` },
+      el("span", { class: "vote-pick" }, `Seu voto: ${q.meu_voto.escolha} · ${opcao(q, q.meu_voto.escolha)}`),
+      el("p", { class: "vote-text" }, q.meu_voto.justificativa));
+  }
+
+  function telaEntrar() {
+    const err = el("p", { class: "error", role: "alert", hidden: !aviso }, aviso);
+    const nome = el("input", { type: "text", id: "nome", maxlength: 40, placeholder: "Como a galera te chama", value: store("cotoco:nome") || "", autocomplete: "nickname" });
+    const btn = el("button", { class: "btn block", type: "submit" }, "Entrar");
+    const form = el("form", { class: "panel", novalidate: true },
+      el("p", { class: "panel-title" }, "Identifique-se"),
+      el("div", { class: "field" }, el("label", { for: "nome" }, "Seu nome"), nome,
+        el("p", { class: "hint" }, "Você só faz isso uma vez. Este aparelho fica lembrando de você.")),
+      err, btn);
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const n = nome.value.trim();
+      if (!n) { err.textContent = "Coloque seu nome para entrar."; err.hidden = false; return; }
+      btn.disabled = true; btn.textContent = "Entrando…";
+      try {
+        const r = await rpc("cotoco_entrar", { p_sessao: sid, p_nome: n });
+        store(tokenKey, r.token); store("cotoco:nome", n); aviso = "";
+        await carregar(); render();
+      } catch (ex) {
+        err.textContent = ex.code === "nome_em_uso"
+          ? `Já tem alguém chamado "${n}" na sessão. Se for você em outro aparelho, peça para quem organiza liberar seu nome. Se não for, use outro nome.`
+          : "Não consegui entrar. Confira sua internet e tente de novo.";
+        err.hidden = false; btn.disabled = false; btn.textContent = "Entrar";
+      }
+    });
+    setView(
+      el("header", { style: "display:grid;gap:12px" },
+        el("p", { class: "kicker" }, "Sessão"),
+        el("h1", {}, estado.sessao.nome)),
+      form);
+  }
+
+  function rosterLobby() {
+    const box = el("div", { style: "display:grid;gap:10px;justify-items:center" },
+      el("p", { class: "panel-title" }, el("b", {}, `Na sala: ${estado.participantes.length}`)),
+      el("div", { class: "roster" }, estado.participantes.map(p => el("span", { class: "chip" }, p))));
+    dinamicos.lobby = box;
+    return box;
+  }
+  function telaLobby() {
+    setView(cabecalho(null),
+      el("div", { class: "panel wait" },
+        el("span", { class: "pulse", "aria-hidden": "true" }),
+        el("p", { class: "big" }, "Você está dentro"),
+        el("p", { class: "muted" }, "Aguarde a primeira pergunta. Ela aparece aqui sozinha, não precisa recarregar."),
+        rosterLobby()));
+  }
+
+  function telaVotar(q) {
+    let escolha = null;
+    const mkSide = l => el("button", { type: "button", class: `side ${l}`, "aria-pressed": "false", onclick: () => escolher(l) },
+      el("span", { class: "ghost-letter", "aria-hidden": "true" }, l),
+      el("span", { class: "pick" }, `✓ Lado ${l}`),
+      el("span", { class: "side-label" }, `Lado ${l}`),
+      el("span", { class: "opt" }, opcao(q, l)));
+    const sideA = mkSide("A"), sideB = mkSide("B");
+    const just = el("textarea", { id: "justificativa", maxlength: MAX_JUST, placeholder: "Escolha um lado e diga por que votou nele." });
+    const justLabel = el("label", { for: "justificativa" }, "Justificativa");
+    const counter = el("p", { class: "counter" });
+    const err = el("p", { class: "error", role: "alert", hidden: true });
+    const enviar = el("button", { class: "btn block", type: "submit", disabled: true }, "Escolha um lado");
+    function escolher(l) {
+      escolha = l;
+      sideA.setAttribute("aria-pressed", l === "A"); sideB.setAttribute("aria-pressed", l === "B");
+      justLabel.textContent = `Por que ${opcao(q, l)}?`;
+      atualizar();
+    }
+    function atualizar() {
+      const n = just.value.trim().length;
+      counter.textContent = n < MIN_JUST ? `Mínimo ${MIN_JUST} caracteres · ${n}/${MIN_JUST}` : `${n}/${MAX_JUST}`;
+      counter.className = "counter" + (n >= MIN_JUST ? " ok" : "");
+      enviar.disabled = !(escolha && n >= MIN_JUST);
+      enviar.className = "btn block" + (escolha ? " " + escolha : "");
+      enviar.textContent = !escolha ? "Escolha um lado" : n < MIN_JUST ? "Justifique o voto" : `Travar voto em ${escolha}`;
+    }
+    just.addEventListener("input", atualizar);
+    const form = el("form", { class: "panel", novalidate: true },
+      el("p", { class: "panel-title" }, "Escolha seu lado"),
+      el("div", { class: "duel" }, sideA, sideB),
+      el("div", { class: "field" }, justLabel, just, counter),
+      err, enviar);
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      if (!escolha || just.value.trim().length < MIN_JUST) return;
+      enviar.disabled = true; enviar.textContent = "Travando…"; err.hidden = true;
+      try {
+        await rpc("cotoco_votar", { p_token: store(tokenKey), p_pergunta: q.id, p_escolha: escolha, p_justificativa: just.value.trim() });
+        toast("Voto travado!");
+        await carregar(); render();
+      } catch (ex) {
+        if (ex.code === "votacao_encerrada") { toast("Essa votação já foi encerrada"); await carregar(); render(); return; }
+        if (ex.code === "ja_votou") { await carregar(); render(); return; }
+        if (ex.code === "nao_identificado") { store(tokenKey, null); aviso = "Seu nome foi liberado por quem organiza. Entre de novo."; await carregar(); render(); return; }
+        err.textContent = "Não consegui registrar seu voto. Confira sua internet e tente de novo."; err.hidden = false; atualizar();
+      }
+    });
+    atualizar();
+    setView(cabecalho(q), form);
+  }
+
+  function telaAguardar(q) {
+    setView(cabecalho(q),
+      el("div", { class: "panel wait" },
+        el("span", { class: "pulse", "aria-hidden": "true" }),
+        el("p", { class: "big" }, "Voto travado"),
+        el("p", { class: "muted" }, "Aguarde todos votarem. O resultado aparece aqui quando quem organiza encerrar."),
+        progresso(),
+        meuVotoRecap(q)));
+  }
+
+  function telaEncerrada(q) {
+    const r = q.resultado;
+    const blocos = [cabecalho(q)];
+    if (q.revelado && r) {
+      blocos.push(el("div", { class: "panel" }, el("p", { class: "panel-title" }, "Votação encerrada"), ...placar(q, r.a, r.b), meuVotoRecap(q)));
+      if (r.votos) blocos.push(el("h2", {}, "Justificativas"), listaVotos(q, r.votos));
+    } else {
+      blocos.push(el("div", { class: "panel wait" },
+        el("span", { class: "lock-icon", "aria-hidden": "true" }),
+        el("p", { class: "big" }, "Votação encerrada"),
+        el("p", { class: "muted" }, "O resultado desta pergunta fica com quem organiza."),
+        meuVotoRecap(q)));
+    }
+    blocos.push(el("div", { class: "panel wait", style: "gap:10px" },
+      el("span", { class: "pulse red", "aria-hidden": "true" }),
+      el("p", { class: "panel-title" }, el("b", {}, "Aguarde a próxima pergunta")),
+      el("p", { class: "hint" }, "Ela aparece aqui sozinha.")));
+    setView(blocos);
   }
 
   render();
-  clearInterval(pollTimer);
-  pollTimer = setInterval(() => { if (!document.hidden) atualizarDados(); }, POLL_MS);
+  iniciarPolling(async () => { try { await carregar(); if (estado) render(); } catch {} });
 }
 
-// ---- Rotas ----
+// ===== Tela do admin =====
+async function viewAdmin(sid, chave) {
+  let dados = null, confirmarEncerrar = false, removendo = null, salvandoVis = false;
+  const novo = store(`cotoco:nova:${sid}`);
+  async function carregar() { dados = await rpc("cotoco_admin_estado", { p_sessao: sid, p_chave: chave }); }
+  try { await carregar(); }
+  catch (ex) {
+    $("#me").textContent = "";
+    return setView(el("div", { class: "panel" },
+      el("h2", {}, ex.code === "chave_invalida" ? "Link de admin inválido" : "Sem conexão"),
+      el("p", { class: "muted" }, ex.code === "chave_invalida"
+        ? "Este link não confere com a sessão. Use o link de admin que apareceu quando você criou a sessão."
+        : "Não consegui falar com o servidor. Confira sua internet e recarregue a página.")));
+  }
+  $("#me").replaceChildren(el("b", { style: "color:var(--warn)" }, "Admin"));
+  document.title = `${dados.sessao.nome} · Admin · Cotoco`;
+
+  const atual = () => dados.perguntas[0] || null;
+  const aberta = () => atual()?.status === "aberta";
+
+  // --- seções (cada uma se redesenha sozinha, o formulário nunca é recriado) ---
+  const secRodada = el("section", { style: "display:grid;gap:16px" });
+  const secPessoas = el("div", { class: "panel" });
+  const secHist = el("section", { style: "display:grid;gap:10px" });
+
+  // formulário de nova pergunta (criado uma vez só)
+  const fErr = el("p", { class: "error", role: "alert", hidden: true });
+  const fBtn = el("button", { class: "btn block", type: "submit" }, "Liberar votação");
+  const fTitulo = el("p", { class: "panel-title" });
+  const form = el("form", { class: "panel", novalidate: true },
+    fTitulo,
+    el("div", { class: "field" }, el("label", { for: "pergunta" }, "Pergunta"),
+      el("input", { type: "text", id: "pergunta", maxlength: 200, placeholder: "Ex.: Quem é mais provável de chegar atrasado?" })),
+    el("div", { class: "ab-inputs" },
+      el("div", { class: "field" }, el("label", { for: "opA" }, sideTag("A"), "Opção A"),
+        el("input", { type: "text", id: "opA", maxlength: 80, placeholder: "Ex.: Léo" })),
+      el("div", { class: "field" }, el("label", { for: "opB" }, sideTag("B"), "Opção B"),
+        el("input", { type: "text", id: "opB", maxlength: 80, placeholder: "Ex.: Caio" }))),
+    fErr, fBtn);
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const p = $("#pergunta").value.trim(), a = $("#opA").value.trim(), b = $("#opB").value.trim();
+    if (!p) { fErr.textContent = "Escreva a pergunta."; fErr.hidden = false; return; }
+    if (!a || !b) { fErr.textContent = "Preencha as duas opções, A e B."; fErr.hidden = false; return; }
+    fErr.hidden = true; fBtn.disabled = true; fBtn.textContent = "Liberando…";
+    try {
+      await rpc("cotoco_admin_nova_pergunta", { p_sessao: sid, p_chave: chave, p_pergunta: p, p_opcao_a: a, p_opcao_b: b });
+      form.reset(); toast("Votação liberada!");
+      await carregar(); render();
+    } catch { fErr.textContent = "Não consegui liberar. Confira sua internet e tente de novo."; fErr.hidden = false; }
+    fBtn.disabled = false; fBtn.textContent = "Liberar votação";
+  });
+
+  function renderRodada() {
+    const q = atual();
+    secRodada.replaceChildren();
+    if (!q) {
+      secRodada.append(el("div", { class: "panel wait" },
+        el("span", { class: "pulse", "aria-hidden": "true" }),
+        el("p", { class: "big" }, "Sala aberta"),
+        el("p", { class: "muted" }, `${plural(dados.participantes.length, "pessoa entrou", "pessoas entraram")} até agora. Lance a primeira pergunta quando quiser.`)));
+      return;
+    }
+    const votos = q.votos, a = votos.filter(v => v.escolha === "A").length, b = votos.length - a;
+    const quemVotou = new Set(votos.map(v => v.participante_id));
+    const faltam = dados.participantes.filter(p => !quemVotou.has(p.id));
+    const head = el("header", { style: "display:grid;gap:10px" },
+      el("p", { class: "round" }, `Pergunta ${q.ordem} · `, q.status === "aberta" ? el("span", { class: "live" }, "Votação aberta") : el("span", { class: "closed" }, "Encerrada")),
+      el("h1", {}, q.pergunta));
+    secRodada.append(head);
+
+    if (q.status === "aberta") {
+      const total = dados.participantes.length;
+      const box = el("div", { class: "panel" },
+        el("p", { class: "panel-title" }, el("b", {}, `${votos.length} de ${total} votaram`)),
+        slots(votos.length, total),
+        faltam.length
+          ? el("div", { style: "display:grid;gap:8px" }, el("p", { class: "hint" }, "Faltam:"), el("div", { class: "roster", style: "justify-content:flex-start" }, faltam.map(p => el("span", { class: "chip off" }, p.nome))))
+          : el("p", { class: "alert-ok" }, total ? "Todo mundo votou! Pode encerrar." : "Ninguém entrou na sala ainda."),
+        el("p", { class: "hint" }, "Placar parcial, só você vê:"),
+        ...placar(q, a, b, false));
+      if (!confirmarEncerrar) box.append(el("button", { class: "btn block", type: "button", onclick: () => { confirmarEncerrar = true; renderRodada(); } }, "Encerrar votação"));
+      else {
+        const sim = el("button", { class: "btn", type: "button" }, "Encerrar agora");
+        sim.addEventListener("click", async () => {
+          sim.disabled = true; sim.textContent = "Encerrando…";
+          try { await rpc("cotoco_admin_encerrar", { p_sessao: sid, p_chave: chave, p_pergunta: q.id }); confirmarEncerrar = false; toast("Votação encerrada"); await carregar(); render(); }
+          catch { sim.disabled = false; sim.textContent = "Encerrar agora"; toast("Não consegui encerrar. Tente de novo."); }
+        });
+        box.append(el("div", { class: "confirm" },
+          el("p", {}, faltam.length ? `Ainda ${faltam.length === 1 ? "falta 1 pessoa" : `faltam ${faltam.length} pessoas`}. Encerrar mesmo assim? Ninguém mais vai poder votar nesta pergunta.` : "Encerrar? Ninguém mais vai poder votar nesta pergunta."),
+          el("div", { class: "row" }, sim, el("button", { class: "btn ghost", type: "button", onclick: () => { confirmarEncerrar = false; renderRodada(); } }, "Cancelar"))));
+      }
+      secRodada.append(box, el("h2", {}, "Votos até agora"), listaVotos(q, [...votos].reverse()));
+      return;
+    }
+
+    // encerrada: resultado + o que a galera vê
+    const modo = !q.revelar ? "nada" : q.revelar_justificativas ? "tudo" : "vencedor";
+    const seg = el("div", { class: "seg", role: "group", "aria-label": "O que a galera vê" },
+      [["nada", "Só que encerrou"], ["vencedor", "Quem venceu"], ["tudo", "Venceu + justificativas"]].map(([k, t]) =>
+        el("button", { type: "button", "aria-pressed": String(modo === k), disabled: salvandoVis, onclick: () => mudarVis(q, k) }, t)));
+    secRodada.append(
+      el("div", { class: "panel" }, el("p", { class: "panel-title" }, "Resultado"), ...placar(q, a, b, true)),
+      el("div", { class: "panel org", style: "gap:12px" },
+        el("p", { class: "panel-title" }, el("b", {}, "O que a galera vê agora")),
+        seg,
+        el("p", { class: "hint" }, modo === "nada" ? "A galera vê só que a votação encerrou. O resultado fica com você."
+          : modo === "vencedor" ? "A galera vê quem venceu e o placar, sem as justificativas."
+          : "A galera vê quem venceu, o placar e todas as justificativas com nome.")),
+      el("h2", {}, "Justificativas"), listaVotos(q, votos));
+  }
+  async function mudarVis(q, k) {
+    salvandoVis = true; renderRodada();
+    try { await rpc("cotoco_admin_revelar", { p_sessao: sid, p_chave: chave, p_pergunta: q.id, p_revelar: k !== "nada", p_justificativas: k === "tudo" }); await carregar(); toast(k === "nada" ? "Resultado escondido" : "Resultado liberado para a galera"); }
+    catch { toast("Não consegui salvar. Tente de novo."); }
+    salvandoVis = false; renderRodada();
+  }
+
+  function renderPessoas() {
+    secPessoas.replaceChildren(
+      el("p", { class: "panel-title" }, el("b", {}, `Na sala: ${dados.participantes.length}`)),
+      dados.participantes.length
+        ? el("ul", { class: "people" }, dados.participantes.map(p => el("li", {},
+            el("span", { class: "p-name" }, p.nome),
+            removendo === p.id
+              ? el("span", { class: "row" },
+                  el("button", { class: "mini danger", type: "button", onclick: () => remover(p) }, "Liberar nome"),
+                  el("button", { class: "mini", type: "button", onclick: () => { removendo = null; renderPessoas(); } }, "Cancelar"))
+              : el("button", { class: "mini", type: "button", onclick: () => { removendo = p.id; renderPessoas(); } }, "Remover"))))
+        : el("p", { class: "muted" }, "Ninguém entrou ainda. Mande o link da galera no grupo."),
+      el("p", { class: "hint" }, "Remover libera o nome. Use se alguém trocou de celular e precisa entrar de novo. Os votos já dados continuam."));
+  }
+  async function remover(p) {
+    try { await rpc("cotoco_admin_remover", { p_sessao: sid, p_chave: chave, p_participante: p.id }); toast(`${p.nome} saiu da sala`); }
+    catch { toast("Não consegui remover. Tente de novo."); }
+    removendo = null; await carregar().catch(() => {}); render();
+  }
+
+  function renderHist() {
+    const antigas = dados.perguntas.slice(1);
+    const abertos = new Set([...secHist.querySelectorAll("details[open]")].map(d => d.dataset.id));
+    secHist.replaceChildren();
+    if (!antigas.length) return;
+    secHist.append(el("h2", {}, "Perguntas anteriores"));
+    for (const q of antigas) {
+      const a = q.votos.filter(v => v.escolha === "A").length, b = q.votos.length - a;
+      const venc = a === b ? "Empate" : opcao(q, a > b ? "A" : "B");
+      const d = el("details", { class: "hist", "data-id": q.id, open: abertos.has(q.id) },
+        el("summary", {}, el("span", { class: "q" }, `${q.ordem}. ${q.pergunta}`), el("span", { class: "w", style: `color:var(--${a === b ? "muted" : a > b ? "a" : "b"})` }, `${venc} · ${a}×${b}`)),
+        el("div", { class: "hist-body" },
+          el("p", { class: "hint" }, !q.revelar ? "Resultado não foi mostrado para a galera." : q.revelar_justificativas ? "A galera viu o resultado e as justificativas." : "A galera viu o resultado."),
+          listaVotos(q, q.votos)));
+      secHist.append(d);
+    }
+  }
+
+  let montado = false;
+  function render() {
+    const q = atual();
+    fTitulo.textContent = q ? "Próxima pergunta" : "Primeira pergunta";
+    form.hidden = aberta();
+    renderRodada(); renderPessoas(); renderHist();
+    if (!montado) {
+      setView(
+        el("p", { class: "kicker" }, `${dados.sessao.nome} · painel de admin`),
+        secRodada, form, painelLinks(sid, chave, novo), secPessoas, secHist,
+        el("footer", {}, el("a", { href: "./" }, "Criar outra sessão")));
+      montado = true;
+    }
+  }
+  render();
+  iniciarPolling(async () => {
+    if (confirmarEncerrar || removendo || salvandoVis) return;
+    try { await carregar(); render(); } catch {}
+  });
+}
+
+// ===== Rotas =====
+// ?s=ID             → jogador
+// ?s=ID&admin=CHAVE → admin
 function route() {
-  clearInterval(pollTimer);
+  clearInterval(timer);
   $("#boot")?.remove();
   const q = new URLSearchParams(location.search);
-  const id = q.get("v"), k = q.get("k");
-  if (id && /^[0-9a-f-]{36}$/i.test(id)) {
-    if (k && /^[0-9a-f]{20,80}$/i.test(k)) {
-      store(`cotoco:chave:${id}`, k);
-      history.replaceState(null, "", `?v=${id}`);
-    }
-    viewVotacao(id);
+  const sid = q.get("s"), adm = q.get("admin");
+  setView(el("p", { class: "loading" }, "Carregando…"));
+  if (sid && /^[0-9a-f-]{36}$/i.test(sid)) {
+    if (adm && /^[0-9a-f]{20,80}$/i.test(adm)) viewAdmin(sid, adm); else viewJogador(sid);
   } else viewCriar();
 }
 window.addEventListener("popstate", route);
