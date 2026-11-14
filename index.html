@@ -4,202 +4,265 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cotoco · A ou B</title>
-<meta name="description" content="Votação entre amigos: escolha A ou B e justifique o seu voto.">
+<meta name="description" content="Votação entre amigos: escolha o lado A ou B e justifique o seu voto.">
+<meta name="theme-color" content="#0F1923">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <style>
-/* Layout: uma coluna estreita; a escolha A|B é um "duelo" lado a lado que vira empilhado no celular */
+/* Layout: HUD tático em uma coluna; escolha de lado A|B lado a lado, cantos chanfrados, tudo escuro */
 :root {
-  --bg: #F3F4F8;
-  --surface: #FFFFFF;
-  --ink: #15172B;
-  --muted: #5D6178;
-  --line: #DADCE7;
-  --a: #3B4CF0;
-  --a-soft: #E4E7FF;
-  --b: #F0632B;
-  --b-soft: #FFE6DA;
-  --danger: #C2283C;
-  --ok: #18865B;
-  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0F1020; --surface: #1A1C30; --ink: #EEF0FA; --muted: #A2A6C2; --line: #2E3150;
-    --a: #8391FF; --a-soft: #262C66; --b: #FF8A5C; --b-soft: #4A2618;
-    --danger: #FF7A8A; --ok: #4FD49A; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0F1020; --surface: #1A1C30; --ink: #EEF0FA; --muted: #A2A6C2; --line: #2E3150;
-  --a: #8391FF; --a-soft: #262C66; --b: #FF8A5C; --b-soft: #4A2618;
-  --danger: #FF7A8A; --ok: #4FD49A; color-scheme: dark;
+  --bg: #0F1923;
+  --panel: #16212C;
+  --panel-2: #1D2A37;
+  --line: #2D3B49;
+  --ink: #ECE8E1;
+  --muted: #8F9BA8;
+  --a: #2CE4C8;
+  --a-dim: rgba(44, 228, 200, .12);
+  --b: #FF4655;
+  --b-dim: rgba(255, 70, 85, .12);
+  --warn: #F5C451;
+  --display: "Anton", "Impact", "Arial Narrow", sans-serif;
+  --cond: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cut: 14px;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
-  background: var(--bg); color: var(--ink);
-  font: 16px/1.55 var(--body);
+  background:
+    linear-gradient(rgba(236,232,225,.025) 1px, transparent 1px) 0 0 / 100% 48px,
+    linear-gradient(90deg, rgba(236,232,225,.025) 1px, transparent 1px) 0 0 / 48px 100%,
+    var(--bg);
+  color: var(--ink);
+  font: 17px/1.5 var(--body);
+  min-height: 100vh;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: max(20px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px));
+  padding-block: max(18px, env(safe-area-inset-top, 0px)) max(48px, env(safe-area-inset-bottom, 0px));
 }
-main { max-width: 680px; margin: 0 auto; display: grid; gap: 28px; }
+main { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
+.panel > *, section > * { min-width: 0; }
 
-.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); width: fit-content; }
-.brand-mark { display: inline-flex; font: 800 15px/1 var(--display); border-radius: 8px; overflow: hidden; }
-.brand-mark span { padding: 6px 8px; color: #fff; }
-.brand-mark span:first-child { background: var(--a); }
-.brand-mark span:last-child { background: var(--b); }
-.brand-name { font: 700 18px/1 var(--display); letter-spacing: .01em; }
+/* marca */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
+.brand-mark { width: 34px; height: 34px; position: relative; }
+.brand-mark i { position: absolute; inset: 0; }
+.brand-mark i:first-child { background: var(--a); clip-path: polygon(0 0, 62% 0, 38% 100%, 0 100%); }
+.brand-mark i:last-child { background: var(--b); clip-path: polygon(70% 0, 100% 0, 100% 100%, 46% 100%); }
+.brand-name { font: 400 24px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.topbar .sys { font: 600 12px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
 
-h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
-h1 { font-size: clamp(30px, 6.5vw, 44px); line-height: 1.08; font-weight: 800; }
-h2 { font-size: 22px; line-height: 1.2; font-weight: 700; }
+/* tipografia */
+h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 400; text-transform: uppercase; text-wrap: balance; letter-spacing: .01em; }
+h1 { font-size: clamp(38px, 9vw, 68px); line-height: .95; }
+h2 { font-size: 30px; line-height: 1; }
 p { margin: 0; }
-.lead { color: var(--muted); font-size: 17px; max-width: 60ch; }
-.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kicker { font: 700 13px/1 var(--cond); letter-spacing: .22em; text-transform: uppercase; color: var(--b); display: flex; align-items: center; gap: 10px; }
+.kicker::before { content: ""; width: 22px; height: 2px; background: currentColor; }
+.lead { color: var(--muted); font-size: 18px; max-width: 56ch; }
+.muted { color: var(--muted); }
 
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 18px; }
-
-.field { display: grid; gap: 6px; }
-label, .label { font-weight: 600; font-size: 14px; }
-.hint { font-size: 13px; color: var(--muted); }
-input[type="text"], textarea {
-  width: 100%; font: inherit; color: var(--ink); background: var(--bg);
-  border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 14px;
+/* painéis chanfrados */
+.panel {
+  background: var(--panel); position: relative; padding: 22px; display: grid; gap: 18px;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  border-top: 2px solid var(--line);
 }
+.panel-title { font: 700 13px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.panel-title b { color: var(--ink); font-weight: 700; }
+
+/* campos */
+.field { display: grid; gap: 7px; }
+label, .label { font: 700 14px/1.2 var(--cond); letter-spacing: .14em; text-transform: uppercase; }
+.hint { font-size: 14px; color: var(--muted); }
+input[type="text"], input[type="number"], textarea {
+  width: 100%; font: 500 17px/1.4 var(--body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 0; padding: 12px 14px;
+}
+input:focus, textarea:focus { border-left-color: var(--b); outline: none; background: #0B131B; }
+input::placeholder, textarea::placeholder { color: #5E6B78; }
 textarea { min-height: 120px; resize: vertical; }
-input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--a) 55%, transparent); outline-offset: 2px;
-}
-.ab-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.tag { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font: 800 13px/1 var(--display); color: #fff; margin-right: 6px; vertical-align: -5px; }
-.tag.A { background: var(--a); } .tag.B { background: var(--b); }
+.ab-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.side-tag { display: inline-grid; place-items: center; width: 22px; height: 22px; font: 400 15px/1 var(--display); color: var(--bg); margin-right: 8px; vertical-align: -4px; clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%); }
+.side-tag.A { background: var(--a); } .side-tag.B { background: var(--b); }
+.check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.check input { appearance: none; width: 22px; height: 22px; border: 2px solid var(--muted); flex: none; margin: 1px 0 0; display: grid; place-items: center; cursor: pointer; }
+.check input:checked { border-color: var(--b); background: var(--b); }
+.check input:checked::after { content: ""; width: 10px; height: 6px; border: solid var(--bg); border-width: 0 0 3px 3px; transform: rotate(-45deg) translate(1px, -1px); }
+.check-text { display: grid; gap: 2px; }
+.check .hint { font: 400 14px/1.4 var(--body); letter-spacing: 0; text-transform: none; }
+.check-text strong { font: 700 15px/1.2 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
+.num-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.num-row input { width: 110px; }
 
+/* botões */
 .btn {
-  font: 600 16px/1 var(--body); border: 0; border-radius: 12px; padding: 15px 20px; cursor: pointer;
-  background: var(--ink); color: var(--bg); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  text-decoration: none;
+  --c: var(--b);
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font: 700 17px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; text-decoration: none;
+  color: #fff; background: var(--c); border: 0; padding: 18px 26px; cursor: pointer; margin: 5px;
+  transition: background-color .15s, color .15s;
 }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn.A { background: var(--a); color: #fff; } .btn.B { background: var(--b); color: #fff; }
-.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
-.btn.small { padding: 10px 14px; font-size: 14px; }
-.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.btn::before { content: ""; position: absolute; inset: -5px; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); pointer-events: none; }
+.btn::after { content: ""; position: absolute; right: 0; bottom: 0; width: 8px; height: 8px; background: var(--bg); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.btn:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+.btn:disabled { background: var(--panel-2); color: var(--muted); cursor: not-allowed; }
+.btn:disabled::before { border-color: var(--line); }
+.btn.A { --c: var(--a); color: var(--bg); }
+.btn.B { --c: var(--b); }
+.btn.block { width: calc(100% - 10px); }
+.btn.ghost { background: transparent; color: var(--ink); --c: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.btn.ghost:hover { background: var(--ink); color: var(--bg); }
+.btn.small { font-size: 14px; padding: 12px 16px; letter-spacing: .16em; }
+.linkbtn { background: none; border: 0; padding: 4px 0; font: 600 14px/1 var(--cond); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); cursor: pointer; justify-self: center; text-decoration: underline; text-underline-offset: 4px; }
+.linkbtn:hover { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--warn); outline-offset: 3px; }
 
-/* O duelo */
-.duel { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 10px; }
-.vs { align-self: center; font: 800 14px/1 var(--display); color: var(--muted); }
-.choice {
-  position: relative; text-align: left; cursor: pointer; font: inherit; color: var(--ink);
-  border: 2px solid var(--line); background: var(--surface); border-radius: 16px;
-  padding: 18px 16px 20px; display: grid; gap: 10px; align-content: start; min-width: 0;
-  transition: border-color .15s, background-color .15s, transform .15s;
+/* seleção de lado */
+.duel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.side {
+  --c: var(--a); --dim: var(--a-dim);
+  position: relative; text-align: left; cursor: pointer; color: var(--ink); font: inherit;
+  background: var(--panel-2); border: 0; padding: 18px 18px 22px; min-height: 190px; min-width: 0;
+  display: grid; align-content: space-between; gap: 18px; overflow: hidden;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow .15s, background-color .15s, transform .15s;
 }
-.choice .letter { font: 800 44px/0.9 var(--display); }
-.choice.A .letter { color: var(--a); } .choice.B .letter { color: var(--b); }
-.choice .opt { font: 700 19px/1.25 var(--display); overflow-wrap: anywhere; }
-.choice[aria-pressed="true"].A { border-color: var(--a); background: var(--a-soft); }
-.choice[aria-pressed="true"].B { border-color: var(--b); background: var(--b-soft); }
-.choice[aria-pressed="true"]::after {
-  content: "Seu voto"; position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: 600;
-  letter-spacing: .06em; text-transform: uppercase; color: #fff; padding: 4px 8px; border-radius: 99px;
+.side.B { --c: var(--b); --dim: var(--b-dim); }
+.side .ghost-letter { position: absolute; right: -6px; bottom: -34px; font: 400 170px/1 var(--display); color: var(--c); opacity: .09; pointer-events: none; }
+.side .side-label { font: 700 13px/1 var(--cond); letter-spacing: .24em; text-transform: uppercase; color: var(--c); }
+.side .opt { font: 400 clamp(24px, 5vw, 32px)/1.02 var(--display); text-transform: uppercase; overflow-wrap: anywhere; position: relative; }
+.side:hover { box-shadow: inset 0 0 0 1px var(--c); }
+.side[aria-pressed="true"] {
+  background: repeating-linear-gradient(135deg, var(--dim) 0 8px, transparent 8px 16px), var(--panel-2);
+  box-shadow: inset 0 0 0 2px var(--c), inset 0 -4px 0 var(--c);
 }
-.choice.A[aria-pressed="true"]::after { background: var(--a); }
-.choice.B[aria-pressed="true"]::after { background: var(--b); }
-.choice:hover { transform: translateY(-2px); }
+.side[aria-pressed="true"] .ghost-letter { opacity: .22; }
+.side .pick { justify-self: start; font: 700 13px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; color: var(--bg); background: var(--c); padding: 5px 8px; margin: -5px 0; }
+.side:not([aria-pressed="true"]) .pick, .side[aria-pressed="true"] .side-label { display: none; }
 
-.counter { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
-.error { color: var(--danger); font-size: 14px; font-weight: 500; }
-.note { font-size: 14px; color: var(--muted); }
+.counter { font: 600 13px/1 var(--cond); letter-spacing: .12em; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.counter.ok { color: var(--a); }
+.error { color: var(--b); font-weight: 600; font-size: 15px; border-left: 3px solid var(--b); padding: 6px 10px; background: var(--b-dim); }
 
-/* Placar */
-.score { display: grid; gap: 12px; }
-.score-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; }
-.score-side { display: grid; gap: 2px; min-width: 0; }
-.score-side.right { text-align: right; }
-.score-num { font: 800 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+/* status */
+.status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font: 700 13px/1 var(--cond); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.live { display: inline-flex; align-items: center; gap: 8px; color: var(--a); }
+.live::before { content: ""; width: 8px; height: 8px; background: currentColor; animation: blink 1.4s steps(2, start) infinite; }
+.closed { color: var(--b); }
+@keyframes blink { to { opacity: .25; } }
+
+/* placar */
+.score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; text-align: center; }
+.score-side { display: grid; gap: 6px; min-width: 0; }
+.score-num { font: 400 clamp(64px, 17vw, 112px)/.9 var(--display); font-variant-numeric: tabular-nums; }
 .score-side.A .score-num { color: var(--a); } .score-side.B .score-num { color: var(--b); }
-.score-label { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
-.bar { display: flex; height: 18px; border-radius: 99px; overflow: hidden; background: var(--line); }
-.bar span { transition: width .5s ease; }
+.score-label { font: 600 15px/1.2 var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); overflow-wrap: anywhere; }
+.score-vs { font: 400 22px/1 var(--display); color: var(--muted); }
+.bar { display: flex; height: 8px; background: var(--line); gap: 3px; }
+.bar span { transition: width .6s ease; }
 .bar .A { background: var(--a); } .bar .B { background: var(--b); }
-.score-foot { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.banner { text-align: center; padding: 16px 12px; font: 400 clamp(30px, 7vw, 46px)/1 var(--display); text-transform: uppercase; letter-spacing: .03em;
+  background: linear-gradient(90deg, transparent, var(--dim, rgba(236,232,225,.08)) 20%, var(--dim, rgba(236,232,225,.08)) 80%, transparent); color: var(--c, var(--ink)); }
+.banner.A { --c: var(--a); --dim: var(--a-dim); } .banner.B { --c: var(--b); --dim: var(--b-dim); }
+.banner small { display: block; font: 700 13px/1 var(--cond); letter-spacing: .26em; color: var(--muted); margin-bottom: 8px; }
 
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tab { font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 99px; border: 1.5px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
-.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+/* placar oculto */
+.locked { text-align: center; display: grid; gap: 14px; justify-items: center; padding-block: 8px; }
+.locked .big { font: 400 clamp(34px, 8vw, 52px)/1 var(--display); text-transform: uppercase; }
+.lock-icon { width: 46px; height: 52px; position: relative; }
+.lock-icon::before { content: ""; position: absolute; left: 9px; top: 0; width: 28px; height: 28px; border: 5px solid var(--b); border-bottom: 0; border-radius: 14px 14px 0 0; }
+.lock-icon::after { content: ""; position: absolute; left: 0; bottom: 0; width: 46px; height: 30px; background: var(--b); clip-path: polygon(0 0, 100% 0, 100% 75%, 85% 100%, 0 100%); }
+.slots { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; max-width: 100%; }
+.slot { width: 26px; height: 8px; background: var(--line); }
+.slot.on { background: var(--ink); }
+.roster { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.chip { font: 600 14px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; padding: 8px 10px; background: var(--panel-2); box-shadow: inset 3px 0 0 var(--ink); }
 
-.votes { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.vote { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
-.vote.A { border-left-color: var(--a); } .vote.B { border-left-color: var(--b); }
+/* feed de justificativas */
+.feed-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 0; box-shadow: inset 0 0 0 1px var(--line); }
+.tab { font: 700 14px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; padding: 11px 14px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.votes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.vote { --c: var(--a); background: var(--panel); padding: 14px 16px 14px 20px; display: grid; gap: 6px; position: relative; min-width: 0;
+  box-shadow: inset 4px 0 0 var(--c); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+.vote.B { --c: var(--b); }
 .vote-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.vote-name { font-weight: 600; }
-.vote-pick { font-size: 13px; font-weight: 600; }
-.vote.A .vote-pick { color: var(--a); } .vote.B .vote-pick { color: var(--b); }
-.vote-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.vote-time { font-size: 12px; color: var(--muted); }
-.empty { color: var(--muted); padding: 18px; text-align: center; border: 1.5px dashed var(--line); border-radius: 12px; }
+.vote-name { font: 700 18px/1.1 var(--cond); letter-spacing: .08em; text-transform: uppercase; }
+.vote-pick { font: 700 13px/1 var(--cond); letter-spacing: .16em; text-transform: uppercase; color: var(--c); }
+.vote-text { white-space: pre-wrap; overflow-wrap: anywhere; color: #D5D1CA; }
+.vote-time { font: 600 12px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 22px; box-shadow: inset 0 0 0 1px dashed var(--line); border: 1px dashed var(--line); }
 
-.share { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.share code { flex: 1 1 220px; min-width: 0; font-size: 13px; padding: 11px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); overflow-x: auto; white-space: nowrap; user-select: all; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 99px; font-size: 14px; font-weight: 500; }
-.loading { color: var(--muted); }
-footer { text-align: center; font-size: 13px; color: var(--muted); }
+/* compartilhar / organizador */
+.share { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.share code { flex: 1 1 240px; min-width: 0; font: 500 14px/1.3 ui-monospace, "SFMono-Regular", Menlo, monospace; padding: 13px 12px; background: var(--bg); border: 1px solid var(--line); overflow-x: auto; white-space: nowrap; user-select: all; color: var(--ink); }
+.org { border-top-color: var(--warn); }
+.org .panel-title b { color: var(--warn); }
+.confirm { display: grid; gap: 12px; padding: 14px; background: var(--b-dim); border-left: 3px solid var(--b); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
-@media (max-width: 520px) {
-  .duel { grid-template-columns: 1fr; }
-  .vs { justify-self: center; }
+.toast { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 12px 18px; font: 700 14px/1 var(--cond); letter-spacing: .16em; text-transform: uppercase; clip-path: polygon(0 0, 100% 0, 100% 70%, calc(100% - 10px) 100%, 0 100%); z-index: 5; }
+.loading { font: 700 14px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+footer { text-align: center; font: 600 13px/1.4 var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+footer a { color: inherit; }
+
+@media (max-width: 540px) {
   .ab-inputs { grid-template-columns: 1fr; }
+  .side { min-height: 150px; padding: 16px 14px 18px; }
+  .side .ghost-letter { font-size: 130px; bottom: -26px; }
   .panel { padding: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  *, *::before { transition: none !important; animation: none !important; }
 }
 </style>
 </head>
 <body>
 <main id="app">
-  <a class="brand" href="./" aria-label="Início">
-    <span class="brand-mark" aria-hidden="true"><span>A</span><span>B</span></span>
-    <span class="brand-name">Cotoco</span>
-  </a>
+  <div class="topbar">
+    <a class="brand" href="./" aria-label="Cotoco, início">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+      <span class="brand-name">Cotoco</span>
+    </a>
+    <span class="sys" aria-hidden="true">A ou B</span>
+  </div>
   <p class="loading" id="boot">Carregando…</p>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
-// ---- Configuração do banco (chave pública: só permite ler e adicionar) ----
+// ---- Banco (chave pública: só permite o que as regras do banco deixam) ----
 const SUPABASE_URL = "https://oojnqitywbasfxuispiw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vam5xaXR5d2Jhc2Z4dWlzcGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NzYyNjgsImV4cCI6MjEwOTU1MjI2OH0.6qzzedJ5enwaJsoq4nag5inb-kC4Qq_QNQgVqeACtNc";
+const MIN_JUST = 5, MAX_JUST = 600, POLL_MS = 5000;
 
-const MIN_JUST = 5, MAX_JUST = 600;
-
-async function api(path, { method = "GET", body } = {}) {
+async function api(path, { method = "GET", body, minimal = false } = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
       "Content-Type": "application/json",
-      Prefer: "return=representation",
+      Prefer: minimal ? "return=minimal" : "return=representation",
     },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch { data = null; }
   if (!res.ok) { const err = new Error(data?.message || "Erro"); err.code = data?.code; err.status = res.status; throw err; }
   return data;
 }
 
 // ---- utilidades ----
-const $ = (sel, root = document) => root.querySelector(sel);
+const $ = (s, r = document) => r.querySelector(s);
 const app = $("#app");
 function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
@@ -213,70 +276,105 @@ function el(tag, attrs = {}, ...kids) {
   return n;
 }
 function store(key, val) {
-  try { if (val === undefined) return JSON.parse(localStorage.getItem(key)); localStorage.setItem(key, JSON.stringify(val)); } catch { return null; }
+  try {
+    if (val === undefined) return JSON.parse(localStorage.getItem(key));
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch { return null; }
 }
 let toastTimer;
 function toast(msg) {
   const t = $("#toast"); t.textContent = msg; t.hidden = false;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 2400);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 2600);
 }
-async function copy(text) {
-  try { await navigator.clipboard.writeText(text); toast("Link copiado"); }
+async function copy(text, msg = "Link copiado") {
+  try { await navigator.clipboard.writeText(text); toast(msg); }
   catch { toast("Não deu para copiar. Selecione o link e copie."); }
 }
-function linkFor(id) { return `${location.origin}${location.pathname}?v=${id}`; }
+const base = () => `${location.origin}${location.pathname}`;
+const linkGalera = id => `${base()}?v=${id}`;
+const linkOrg = (id, k) => `${base()}?v=${id}&k=${k}`;
 function quando(iso) {
-  const d = new Date(iso), s = (Date.now() - d) / 1000;
+  const s = (Date.now() - new Date(iso)) / 1000;
   if (s < 60) return "agora";
   if (s < 3600) return `há ${Math.floor(s / 60)} min`;
   if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 function clearView() { [...app.children].slice(1).forEach(n => n.remove()); }
+function sideTag(l) { return el("span", { class: `side-tag ${l}`, "aria-hidden": "true" }, l); }
 
 // ---- Tela: criar votação ----
 function viewCriar() {
   clearView();
   document.title = "Cotoco · A ou B";
   const err = el("p", { class: "error", role: "alert", hidden: true });
+  const secreto = el("input", { type: "checkbox", id: "secreto", checked: true });
+  const esperados = el("input", { type: "number", id: "esperados", min: 2, max: 200, inputmode: "numeric", placeholder: "Ex.: 8" });
+  const regra = el("p", { class: "hint" });
+  function atualizarRegra() {
+    const n = parseInt(esperados.value, 10), temN = n >= 2;
+    if (secreto.checked) regra.textContent = temN
+      ? `O placar só aparece quando as ${n} pessoas votarem, ou quando você encerrar antes.`
+      : "Sem número de pessoas, o placar só aparece quando você encerrar a votação.";
+    else regra.textContent = temN
+      ? `O placar aparece ao vivo. A votação fecha sozinha quando ${n} pessoas votarem.`
+      : "O placar aparece ao vivo. A votação fica aberta até você encerrar.";
+  }
+  secreto.addEventListener("change", atualizarRegra);
+  esperados.addEventListener("input", atualizarRegra);
+  atualizarRegra();
+
   const form = el("form", { class: "panel", novalidate: true },
+    el("p", { class: "panel-title" }, "Nova votação"),
     el("div", { class: "field" },
-      el("label", { for: "pergunta" }, "Sobre o que é a votação?"),
-      el("input", { type: "text", id: "pergunta", maxlength: 200, placeholder: "Ex.: Onde vai ser o churrasco de sábado?", required: true })),
+      el("label", { for: "pergunta" }, "Pergunta"),
+      el("input", { type: "text", id: "pergunta", maxlength: 200, placeholder: "Ex.: Onde vai ser o churrasco de sábado?" })),
     el("div", { class: "ab-inputs" },
       el("div", { class: "field" },
-        el("label", { for: "opA" }, el("span", { class: "tag A" }, "A"), "Opção A"),
-        el("input", { type: "text", id: "opA", maxlength: 80, placeholder: "Ex.: Na casa do Léo", required: true })),
+        el("label", { for: "opA" }, sideTag("A"), "Lado A"),
+        el("input", { type: "text", id: "opA", maxlength: 80, placeholder: "Ex.: Casa do Léo" })),
       el("div", { class: "field" },
-        el("label", { for: "opB" }, el("span", { class: "tag B" }, "B"), "Opção B"),
-        el("input", { type: "text", id: "opB", maxlength: 80, placeholder: "Ex.: No sítio", required: true }))),
+        el("label", { for: "opB" }, sideTag("B"), "Lado B"),
+        el("input", { type: "text", id: "opB", maxlength: 80, placeholder: "Ex.: No sítio" }))),
+    el("div", { class: "field" },
+      el("label", { for: "esperados" }, "Quantas pessoas vão votar?"),
+      el("div", { class: "num-row" }, esperados, el("span", { class: "hint" }, "Opcional. Contando com você, se for votar."))),
+    el("label", { class: "check", for: "secreto" }, secreto,
+      el("span", { class: "check-text" },
+        el("strong", {}, "Placar secreto até o fim"),
+        el("span", { class: "hint" }, "Ninguém vê quem está ganhando antes da hora."))),
+    regra,
     err,
-    el("button", { class: "btn", type: "submit" }, "Criar votação e pegar o link"));
+    el("button", { class: "btn block", type: "submit" }, "Criar votação"));
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const pergunta = $("#pergunta").value.trim(), opcao_a = $("#opA").value.trim(), opcao_b = $("#opB").value.trim();
-    if (pergunta.length < 3) return showErr("Escreva a pergunta da votação (pelo menos 3 letras).");
-    if (!opcao_a || !opcao_b) return showErr("Preencha as duas opções, A e B.");
+    const p_pergunta = $("#pergunta").value.trim(), p_opcao_a = $("#opA").value.trim(), p_opcao_b = $("#opB").value.trim();
+    const n = esperados.value.trim() ? parseInt(esperados.value, 10) : null;
+    if (p_pergunta.length < 3) return showErr("Escreva a pergunta da votação.");
+    if (!p_opcao_a || !p_opcao_b) return showErr("Preencha os dois lados, A e B.");
+    if (n !== null && !(n >= 2 && n <= 200)) return showErr("O número de pessoas precisa ser entre 2 e 200, ou fique em branco.");
     const btn = form.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Criando…";
     try {
-      const [v] = await api("cotoco_votacoes", { method: "POST", body: { pergunta, opcao_a, opcao_b } });
-      store(`cotoco:criada:${v.id}`, true);
-      history.pushState(null, "", `?v=${v.id}`);
+      const r = await api("rpc/cotoco_criar", { method: "POST", body: { p_pergunta, p_opcao_a, p_opcao_b, p_placar_secreto: secreto.checked, p_esperados: n } });
+      store(`cotoco:chave:${r.id}`, r.chave);
+      store(`cotoco:nova:${r.id}`, true);
+      history.pushState(null, "", `?v=${r.id}`);
       route();
     } catch {
       showErr("Não consegui criar a votação. Confira sua internet e tente de novo.");
-      btn.disabled = false; btn.textContent = "Criar votação e pegar o link";
+      btn.disabled = false; btn.textContent = "Criar votação";
     }
   });
   function showErr(m) { err.textContent = m; err.hidden = false; }
 
   app.append(
-    el("header", { style: "display:grid;gap:12px" },
-      el("h1", {}, "Uma pergunta, duas opções e um porquê."),
-      el("p", { class: "lead" }, "Crie a votação, mande o link no grupo e cada amigo escolhe A ou B. Ninguém vota sem justificar.")),
+    el("header", { style: "display:grid;gap:14px" },
+      el("p", { class: "kicker" }, "Escolha seu lado"),
+      el("h1", {}, "Dois lados. Um voto. Justifique."),
+      el("p", { class: "lead" }, "Crie a votação, mande o link no grupo e cada um escolhe A ou B. Ninguém trava o voto sem dizer o porquê.")),
     form,
-    el("footer", {}, "Qualquer pessoa com o link pode votar. Não precisa de cadastro."));
+    el("footer", {}, "Quem tem o link vota. Sem cadastro."));
 }
 
 // ---- Tela: votação ----
@@ -286,166 +384,254 @@ async function viewVotacao(id) {
   const loading = el("p", { class: "loading" }, "Carregando a votação…");
   app.append(loading);
 
-  let votacao;
-  try {
-    const rows = await api(`cotoco_votacoes?id=eq.${encodeURIComponent(id)}&select=*`);
-    votacao = rows[0];
-  } catch { votacao = null; }
-  loading.remove();
+  let votacao = null, participantes = [], votos = [];
+  async function carregar() {
+    const [rows, parts] = await Promise.all([
+      api(`cotoco_votacoes?id=eq.${encodeURIComponent(id)}&select=*`),
+      api("rpc/cotoco_participantes", { method: "POST", body: { p_id: id } }),
+    ]);
+    votacao = rows[0] || null; participantes = parts || [];
+    if (votacao && placarLiberado()) {
+      votos = await api(`cotoco_votos?votacao_id=eq.${id}&select=nome,escolha,justificativa,created_at&order=created_at.desc`);
+    }
+  }
+  const placarLiberado = () => votacao.encerrada || !votacao.placar_secreto;
 
+  try { await carregar(); } catch { votacao = null; }
+  loading.remove();
   if (!votacao) {
     app.append(el("div", { class: "panel" },
-      el("h2", {}, "Essa votação não foi encontrada"),
-      el("p", { class: "note" }, "O link pode estar incompleto. Peça para quem criou mandar de novo."),
+      el("h2", {}, "Votação não encontrada"),
+      el("p", { class: "muted" }, "O link pode estar incompleto. Peça para quem criou mandar de novo."),
       el("a", { class: "btn ghost", href: "./" }, "Criar uma votação nova")));
     return;
   }
-  document.title = `${votacao.pergunta} · Cotoco`;
 
+  const chave = () => store(`cotoco:chave:${id}`);
   const meuVoto = () => store(`cotoco:voto:${id}`);
-  const nomeSalvo = store("cotoco:nome") || "";
-  let escolha = null, verResultados = !!meuVoto(), votos = [], filtro = "todos";
+  let escolha = null, querVer = false, filtro = "todos", confirmando = false, ultimoEstado = "";
 
-  const header = el("header", { style: "display:grid;gap:10px" },
-    el("p", { class: "eyebrow" }, "Votação"),
-    el("h1", {}, votacao.pergunta));
+  // ----- cabeçalho -----
+  const statusLine = el("div", { class: "status" });
+  const header = el("header", { style: "display:grid;gap:14px" },
+    el("p", { class: "kicker" }, "Votação"),
+    el("h1", {}, votacao.pergunta),
+    statusLine);
+  function renderStatus() {
+    const n = participantes.length, total = votacao.esperados;
+    statusLine.replaceChildren(
+      votacao.encerrada ? el("span", { class: "closed" }, "Encerrada") : el("span", { class: "live" }, "Em andamento"),
+      el("span", {}, total ? `${n}/${total} votaram` : `${n} ${n === 1 ? "voto" : "votos"}`),
+      el("span", {}, votacao.placar_secreto ? "Placar secreto" : "Placar ao vivo"));
+  }
 
-  // compartilhar
-  const url = linkFor(id);
-  const share = el("div", { class: "panel", style: "gap:10px" },
-    el("p", { class: "label" }, store(`cotoco:criada:${id}`) ? "Pronto! Mande este link para a galera:" : "Link desta votação"),
-    el("div", { class: "share" },
-      el("code", {}, url),
-      el("button", { class: "btn small", type: "button", onclick: () => copy(url) }, "Copiar link"),
-      el("a", { class: "btn small ghost", href: `https://wa.me/?text=${encodeURIComponent(`Vota aí: ${votacao.pergunta}\n${url}`)}`, target: "_blank", rel: "noopener" }, "Mandar no WhatsApp")));
-
-  // formulário de voto
-  const cardA = el("button", { type: "button", class: "choice A", "aria-pressed": "false", onclick: () => escolher("A") },
-    el("span", { class: "letter" }, "A"), el("span", { class: "opt" }, votacao.opcao_a));
-  const cardB = el("button", { type: "button", class: "choice B", "aria-pressed": "false", onclick: () => escolher("B") },
-    el("span", { class: "letter" }, "B"), el("span", { class: "opt" }, votacao.opcao_b));
-  const nome = el("input", { type: "text", id: "nome", maxlength: 40, placeholder: "Como seus amigos te chamam", value: nomeSalvo, autocomplete: "given-name" });
-  const just = el("textarea", { id: "justificativa", maxlength: MAX_JUST, placeholder: "Escolha uma opção acima e diga por que votou nela." });
+  // ----- formulário de voto -----
+  const mkSide = (l, txt) => el("button", { type: "button", class: `side ${l}`, "aria-pressed": "false", onclick: () => escolher(l) },
+    el("span", { class: "ghost-letter", "aria-hidden": "true" }, l),
+    el("span", { class: "pick" }, `✓ Lado ${l}`),
+    el("span", { class: "side-label" }, `Lado ${l}`),
+    el("span", { class: "opt" }, txt));
+  const sideA = mkSide("A", votacao.opcao_a), sideB = mkSide("B", votacao.opcao_b);
+  const nome = el("input", { type: "text", id: "nome", maxlength: 40, placeholder: "Como a galera te chama", value: store("cotoco:nome") || "", autocomplete: "nickname" });
+  const just = el("textarea", { id: "justificativa", maxlength: MAX_JUST, placeholder: "Escolha um lado e diga por que votou nele." });
+  const justLabel = el("label", { for: "justificativa" }, "Justificativa");
   const counter = el("p", { class: "counter" });
   const err = el("p", { class: "error", role: "alert", hidden: true });
-  const enviar = el("button", { class: "btn", type: "submit", disabled: true }, "Escolha A ou B");
-  const justLabel = el("label", { for: "justificativa" }, "Por que você escolheu essa?");
+  const enviar = el("button", { class: "btn block", type: "submit", disabled: true }, "Escolha um lado");
 
-  function escolher(op) {
-    escolha = op;
-    cardA.setAttribute("aria-pressed", op === "A"); cardB.setAttribute("aria-pressed", op === "B");
-    justLabel.textContent = `Por que você escolheu ${op}?`;
-    just.placeholder = `Conta pra galera por que ${op === "A" ? votacao.opcao_a : votacao.opcao_b} é a melhor escolha.`;
+  function escolher(l) {
+    escolha = l;
+    sideA.setAttribute("aria-pressed", l === "A"); sideB.setAttribute("aria-pressed", l === "B");
+    justLabel.textContent = `Por que o lado ${l}?`;
+    just.placeholder = `Defenda o lado ${l}: por que "${l === "A" ? votacao.opcao_a : votacao.opcao_b}" é a melhor escolha?`;
     atualizar();
   }
   function atualizar() {
-    const n = just.value.trim().length;
-    counter.textContent = n < MIN_JUST ? `Mínimo de ${MIN_JUST} caracteres (${n}/${MIN_JUST})` : `${n}/${MAX_JUST}`;
-    const ok = escolha && nome.value.trim() && n >= MIN_JUST;
-    enviar.disabled = !ok;
-    enviar.className = "btn" + (escolha ? " " + escolha : "");
-    enviar.textContent = !escolha ? "Escolha A ou B" : !nome.value.trim() ? "Coloque seu nome" : n < MIN_JUST ? "Justifique seu voto" : `Votar em ${escolha}`;
+    const n = just.value.trim().length, temNome = !!nome.value.trim();
+    counter.textContent = n < MIN_JUST ? `Mínimo ${MIN_JUST} caracteres · ${n}/${MIN_JUST}` : `${n}/${MAX_JUST}`;
+    counter.className = "counter" + (n >= MIN_JUST ? " ok" : "");
+    enviar.disabled = !(escolha && temNome && n >= MIN_JUST);
+    enviar.className = "btn block" + (escolha ? " " + escolha : "");
+    enviar.textContent = !escolha ? "Escolha um lado" : !temNome ? "Coloque seu nome" : n < MIN_JUST ? "Justifique o voto" : `Travar voto no lado ${escolha}`;
   }
   nome.addEventListener("input", atualizar); just.addEventListener("input", atualizar);
 
   const form = el("form", { class: "panel", novalidate: true },
-    el("div", { class: "duel" }, cardA, el("span", { class: "vs", "aria-hidden": "true" }, "ou"), cardB),
+    el("p", { class: "panel-title" }, "Escolha seu lado"),
+    el("div", { class: "duel" }, sideA, sideB),
     el("div", { class: "field" }, el("label", { for: "nome" }, "Seu nome"), nome),
     el("div", { class: "field" }, justLabel, just, counter),
-    err,
-    enviar,
-    el("button", { type: "button", class: "linkbtn", onclick: () => { verResultados = true; render(); } }, "Ver os votos sem votar"));
+    err, enviar,
+    el("button", { type: "button", class: "linkbtn", onclick: () => { querVer = true; render(); } }, "Ver como está sem votar"));
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const payload = { votacao_id: id, nome: nome.value.trim(), escolha, justificativa: just.value.trim() };
     if (!escolha || !payload.nome || payload.justificativa.length < MIN_JUST) return;
-    enviar.disabled = true; enviar.textContent = "Enviando…"; err.hidden = true;
+    enviar.disabled = true; enviar.textContent = "Travando…"; err.hidden = true;
     try {
-      await api("cotoco_votos", { method: "POST", body: payload });
+      await api("cotoco_votos", { method: "POST", body: payload, minimal: true });
       store("cotoco:nome", payload.nome);
       store(`cotoco:voto:${id}`, { nome: payload.nome, escolha });
-      verResultados = true;
-      toast("Voto registrado!");
-      await carregarVotos();
-      render();
+      toast("Voto travado!");
+      await atualizarDados(true);
     } catch (ex) {
-      err.textContent = ex.code === "23505"
-        ? `Já existe um voto com o nome "${payload.nome}" nesta votação. Se não foi você, use outro nome (com sobrenome, por exemplo).`
-        : "Não consegui registrar seu voto. Confira sua internet e tente de novo.";
+      if (ex.code === "23505") err.textContent = `Já tem um voto com o nome "${payload.nome}" aqui. Se não foi você, use outro nome (com sobrenome, por exemplo).`;
+      else if (ex.code === "42501") { err.textContent = "Essa votação já foi encerrada. Não dá mais para votar."; atualizarDados(true); }
+      else err.textContent = "Não consegui registrar seu voto. Confira sua internet e tente de novo.";
       err.hidden = false; atualizar();
     }
   });
 
-  // resultados
-  const results = el("section", { style: "display:grid;gap:16px" });
-
-  async function carregarVotos() {
-    try { votos = await api(`cotoco_votos?votacao_id=eq.${id}&select=nome,escolha,justificativa,created_at&order=created_at.desc`); }
-    catch { /* mantém os últimos votos na tela */ }
-  }
-
-  function renderResults() {
-    results.replaceChildren();
-    const a = votos.filter(v => v.escolha === "A").length, b = votos.length - a, total = votos.length;
-    const pa = total ? Math.round((a / total) * 100) : 50, pb = total ? 100 - pa : 50;
+  // ----- resultado -----
+  const resultado = el("section", { style: "display:grid;gap:18px" });
+  function renderResultado() {
+    resultado.replaceChildren();
     const mine = meuVoto();
-    let resumo = total === 0 ? "Ninguém votou ainda." : a === b ? "Empate, por enquanto." : `${a > b ? "A" : "B"} está na frente.`;
-    results.append(
-      el("div", { class: "panel score" },
-        el("div", { class: "score-head" },
-          el("div", { class: "score-side A" }, el("span", { class: "score-num" }, a), el("span", { class: "score-label" }, `A · ${votacao.opcao_a}`)),
-          el("div", { class: "score-side B right" }, el("span", { class: "score-num" }, b), el("span", { class: "score-label" }, `B · ${votacao.opcao_b}`))),
-        el("div", { class: "bar", role: "img", "aria-label": `A ${pa}%, B ${pb}%` },
-          el("span", { class: "A", style: `width:${total ? pa : 50}%` }), el("span", { class: "B", style: `width:${total ? pb : 50}%` })),
-        el("p", { class: "score-foot" }, `${total} ${total === 1 ? "voto" : "votos"} · ${total ? `${pa}% A, ${pb}% B · ` : ""}${resumo}`),
-        mine ? el("p", { class: "note" }, `Você votou como ${mine.nome}, na opção ${mine.escolha}.`) : null));
+    if (!placarLiberado()) {
+      const n = participantes.length, total = votacao.esperados;
+      resultado.append(el("div", { class: "panel locked" },
+        el("span", { class: "lock-icon", "aria-hidden": "true" }),
+        el("p", { class: "big" }, "Placar oculto"),
+        el("p", { class: "muted" }, total
+          ? `O resultado aparece quando as ${total} pessoas votarem, ou quando quem organizou encerrar.`
+          : "O resultado aparece quando quem organizou encerrar a votação."),
+        total ? el("div", { class: "slots", role: "img", "aria-label": `${n} de ${total} votaram` },
+          Array.from({ length: total }, (_, i) => el("span", { class: "slot" + (i < n ? " on" : "") }))) : null,
+        el("p", { class: "panel-title" }, n ? el("b", {}, `${n} ${n === 1 ? "pessoa já travou" : "pessoas já travaram"} o voto`) : "Ninguém votou ainda"),
+        n ? el("div", { class: "roster" }, participantes.map(p => el("span", { class: "chip" }, p.nome))) : null,
+        mine ? el("p", { class: "muted" }, `Você votou como ${mine.nome}, no lado ${mine.escolha}.`) : null));
+      return;
+    }
+
+    const a = votos.filter(v => v.escolha === "A").length, b = votos.length - a, total = votos.length;
+    const pa = total ? Math.round(a / total * 100) : 50, pb = total ? 100 - pa : 50;
+    let banner = null;
+    if (votacao.encerrada) {
+      banner = total === 0 ? el("div", { class: "banner" }, el("small", {}, "Resultado final"), "Sem votos")
+        : a === b ? el("div", { class: "banner" }, el("small", {}, "Resultado final"), "Empate")
+        : el("div", { class: `banner ${a > b ? "A" : "B"}` }, el("small", {}, "Resultado final"), `Vitória do lado ${a > b ? "A" : "B"}`);
+    }
+    resultado.append(el("div", { class: "panel" },
+      el("p", { class: "panel-title" }, votacao.encerrada ? "Placar final" : "Placar parcial"),
+      banner,
+      el("div", { class: "score" },
+        el("div", { class: "score-side A" }, el("span", { class: "score-num" }, a), el("span", { class: "score-label" }, `A · ${votacao.opcao_a}`)),
+        el("span", { class: "score-vs", "aria-hidden": "true" }, "×"),
+        el("div", { class: "score-side B" }, el("span", { class: "score-num" }, b), el("span", { class: "score-label" }, `B · ${votacao.opcao_b}`))),
+      el("div", { class: "bar", role: "img", "aria-label": `Lado A ${pa}%, lado B ${pb}%` },
+        el("span", { class: "A", style: `width:${pa}%` }), el("span", { class: "B", style: `width:${pb}%` })),
+      el("p", { class: "status", style: "justify-content:space-between" },
+        el("span", {}, `${total} ${total === 1 ? "voto" : "votos"}`), el("span", {}, total ? `${pa}% A · ${pb}% B` : "")),
+      mine ? el("p", { class: "muted" }, `Você votou como ${mine.nome}, no lado ${mine.escolha}.`) : null));
 
     const tabs = el("div", { class: "tabs", role: "tablist" },
-      ...[["todos", `Todos (${total})`], ["A", `A (${a})`], ["B", `B (${b})`]].map(([k, t]) =>
-        el("button", { type: "button", class: "tab", role: "tab", "aria-selected": String(filtro === k), onclick: () => { filtro = k; renderResults(); } }, t)));
-
+      [["todos", `Todos ${total}`], ["A", `A ${a}`], ["B", `B ${b}`]].map(([k, t]) =>
+        el("button", { type: "button", class: "tab", role: "tab", "aria-selected": String(filtro === k), onclick: () => { filtro = k; renderResultado(); } }, t)));
     const lista = votos.filter(v => filtro === "todos" || v.escolha === filtro);
-    results.append(
-      el("div", { class: "row", style: "justify-content:space-between" }, el("h2", {}, "Justificativas"), tabs),
+    resultado.append(
+      el("div", { class: "feed-head" }, el("h2", {}, "Justificativas"), tabs),
       lista.length
         ? el("ul", { class: "votes" }, lista.map(v => el("li", { class: `vote ${v.escolha}` },
             el("div", { class: "vote-head" },
               el("span", { class: "vote-name" }, v.nome),
-              el("span", { class: "vote-pick" }, `${v.escolha} · ${v.escolha === "A" ? votacao.opcao_a : votacao.opcao_b}`)),
+              el("span", { class: "vote-pick" }, `Lado ${v.escolha} · ${v.escolha === "A" ? votacao.opcao_a : votacao.opcao_b}`)),
             el("p", { class: "vote-text" }, v.justificativa),
             el("span", { class: "vote-time" }, quando(v.created_at)))))
-        : el("p", { class: "empty" }, total ? "Nenhum voto nesta opção ainda." : "Os votos e as justificativas aparecem aqui. Mande o link para a galera!"));
+        : el("p", { class: "empty" }, total ? "Ninguém escolheu esse lado." : "Os votos e as justificativas aparecem aqui."));
   }
 
-  function render() {
-    [...app.children].slice(1).forEach(n => n.remove());
-    if (verResultados) {
-      app.append(header, results, share);
-      if (!meuVoto()) app.append(el("button", { type: "button", class: "btn ghost", onclick: () => { verResultados = false; render(); } }, "Quero votar"));
-      renderResults();
+  // ----- compartilhar -----
+  const urlGalera = linkGalera(id);
+  const share = el("div", { class: "panel", style: "gap:12px" },
+    el("p", { class: "panel-title" }, store(`cotoco:nova:${id}`) ? el("b", {}, "Pronto! Mande este link para a galera") : "Link desta votação"),
+    el("div", { class: "share" },
+      el("code", {}, urlGalera),
+      el("button", { class: "btn small", type: "button", onclick: () => copy(urlGalera) }, "Copiar"),
+      el("a", { class: "btn small ghost", href: `https://wa.me/?text=${encodeURIComponent(`Escolhe teu lado: ${votacao.pergunta}\n${urlGalera}`)}`, target: "_blank", rel: "noopener" }, "WhatsApp")));
+
+  // ----- painel do organizador -----
+  const org = el("div", { class: "panel org" });
+  function renderOrg() {
+    const k = chave();
+    org.hidden = !k;
+    if (!k) return;
+    org.replaceChildren(el("p", { class: "panel-title" }, el("b", {}, "Painel de quem organiza")));
+    const urlOrg = linkOrg(id, k);
+    org.append(
+      el("p", { class: "hint" }, "Este é o seu link de organizador. Guarde e não mande no grupo: quem tem ele pode encerrar a votação."),
+      el("div", { class: "share" }, el("code", {}, urlOrg), el("button", { class: "btn small ghost", type: "button", onclick: () => copy(urlOrg, "Link de organizador copiado") }, "Copiar")));
+    if (votacao.encerrada) {
+      org.append(el("p", { class: "status" }, el("span", { class: "closed" }, "Votação encerrada")));
+    } else if (!confirmando) {
+      org.append(el("button", { class: "btn block", type: "button", onclick: () => { confirmando = true; renderOrg(); } }, "Encerrar votação"));
     } else {
-      app.append(header, form, share);
-      atualizar();
+      const erro = el("p", { class: "error", hidden: true });
+      const sim = el("button", { class: "btn", type: "button" }, "Encerrar agora");
+      sim.addEventListener("click", async () => {
+        sim.disabled = true; sim.textContent = "Encerrando…";
+        try {
+          const ok = await api("rpc/cotoco_encerrar", { method: "POST", body: { p_id: id, p_chave: k } });
+          if (!ok) throw new Error("chave");
+          confirmando = false; toast("Votação encerrada");
+          await atualizarDados(true);
+        } catch (ex) {
+          erro.textContent = ex.message === "chave" ? "Este aparelho não tem a chave certa desta votação." : "Não consegui encerrar. Confira sua internet e tente de novo.";
+          erro.hidden = false; sim.disabled = false; sim.textContent = "Encerrar agora";
+        }
+      });
+      org.append(el("div", { class: "confirm" },
+        el("p", {}, `Encerrar agora? Ninguém mais vai poder votar e o placar aparece para todo mundo. ${participantes.length} ${participantes.length === 1 ? "pessoa votou" : "pessoas votaram"} até agora.`),
+        erro,
+        el("div", { class: "row" }, sim, el("button", { class: "btn ghost", type: "button", onclick: () => { confirmando = false; renderOrg(); } }, "Cancelar"))));
     }
-    app.append(el("footer", {}, el("a", { href: "./", style: "color:inherit" }, "Criar outra votação")));
   }
 
-  await carregarVotos();
+  // ----- montagem -----
+  const mostrarForm = () => !votacao.encerrada && !meuVoto() && !querVer;
+  function render() {
+    clearView();
+    document.title = `${votacao.pergunta} · Cotoco`;
+    renderStatus(); renderOrg();
+    if (mostrarForm()) { app.append(header, form, share, org); atualizar(); }
+    else {
+      renderResultado();
+      app.append(header, resultado);
+      if (!votacao.encerrada && !meuVoto()) app.append(el("button", { class: "btn ghost block", type: "button", onclick: () => { querVer = false; render(); } }, "Quero votar"));
+      app.append(share, org);
+    }
+    app.append(el("footer", {}, el("a", { href: "./" }, "Criar outra votação")));
+    ultimoEstado = estado();
+  }
+  const estado = () => `${votacao.encerrada}|${mostrarForm()}`;
+
+  async function atualizarDados(forcarRender = false) {
+    try { await carregar(); } catch { return; }
+    if (!votacao) return;
+    if (forcarRender || estado() !== ultimoEstado) { render(); return; }
+    renderStatus();
+    if (!mostrarForm()) renderResultado();
+    if (!confirmando) renderOrg();
+  }
+
   render();
   clearInterval(pollTimer);
-  pollTimer = setInterval(async () => {
-    if (document.hidden || !verResultados) return;
-    await carregarVotos(); renderResults();
-  }, 6000);
+  pollTimer = setInterval(() => { if (!document.hidden) atualizarDados(); }, POLL_MS);
 }
 
-// ---- Roteamento ----
+// ---- Rotas ----
 function route() {
   clearInterval(pollTimer);
   $("#boot")?.remove();
-  const id = new URLSearchParams(location.search).get("v");
-  if (id && /^[0-9a-f-]{36}$/i.test(id)) viewVotacao(id); else viewCriar();
+  const q = new URLSearchParams(location.search);
+  const id = q.get("v"), k = q.get("k");
+  if (id && /^[0-9a-f-]{36}$/i.test(id)) {
+    if (k && /^[0-9a-f]{20,80}$/i.test(k)) {
+      store(`cotoco:chave:${id}`, k);
+      history.replaceState(null, "", `?v=${id}`);
+    }
+    viewVotacao(id);
+  } else viewCriar();
 }
 window.addEventListener("popstate", route);
 route();
